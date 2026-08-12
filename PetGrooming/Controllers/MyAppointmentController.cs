@@ -233,6 +233,7 @@ public class MyAppointmentController(DB db, Helper hp, StripeService stripe) : C
                  .Include(a => a.Items).ThenInclude(i => i.Pet)
                  .Include(a => a.Items).ThenInclude(i => i.Service)
                  .Include(a => a.Items).ThenInclude(i => i.Staff)
+                 .Include(a => a.Items).ThenInclude(i => i.Report).ThenInclude(r => r.Photos)
                  .Include(a => a.Payments)
                  .Include(a => a.StatusHistories)
                  .FirstOrDefault(a => a.Id == id && a.MemberEmail == User.Identity!.Name);

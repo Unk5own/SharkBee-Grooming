@@ -179,11 +179,18 @@ public class ReportCardVM
     [DisplayName("Recommendation for Next Visit")]
     public string? NextVisitRecommendation { get; set; }
 
+    // Nullable for the same reason as the strings above: a non-nullable reference
+    // type is inferred as required, which would block saving a report with no
+    // new photos attached.
     [DisplayName("Before Photos")]
-    public List<IFormFile> BeforePhotos { get; set; } = [];
+    public List<IFormFile>? BeforePhotos { get; set; }
 
     [DisplayName("After Photos")]
-    public List<IFormFile> AfterPhotos { get; set; } = [];
+    public List<IFormFile>? AfterPhotos { get; set; }
+
+    // Display only.
+    public string? PetName { get; set; }
+    public string? ServiceName { get; set; }
 }
 
 public class ReviewVM

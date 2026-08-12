@@ -1,0 +1,103 @@
+@model ReportCardVM
+@{
+    var item = (AppointmentItem)ViewBag.Item;
+    var photos = (List<GroomingReportPhoto>)ViewBag.Photos;
+    var before = photos.Where(p => p.PhotoType == PhotoType.Before).ToList();
+    var after = photos.Where(p => p.PhotoType == PhotoType.After).ToList();
+}
+
+<div class="card">
+    <div class="detailhead">
+        <div>
+            <b>@item.Pet.Name</b>
+            <span class="sub">
+                @item.Pet.Breed &middot; @item.Service.Name &middot;
+                @item.SlotStart.ToString("d MMM yyyy, h:mm tt")
+            </span>
+        </div>
+        <span class="pill @item.ItemStatus.ToString().ToLower()">@item.ItemStatus</span>
+    </div>
+</div>
+
+<form asp-action="ReportCard" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="AppointmentItemId">
+
+    <div asp-validation-summary="All" class="validation-summary-errors"></div>
+
+    <div class="card">
+        <label asp-for="CoatCondition"></label>
+        <input type="text" asp-for="CoatCondition"
+               placeholder="Excellent, slightly matted, dry, heavy shedding...">
+
+        <label asp-for="GroomerNotes" style="margin-top:12px"></label>
+        <textarea asp-for="GroomerNotes" rows="3"
+                  placeholder="What you did and anything the owner should know"></textarea>
+
+        <label asp-for="BehaviourNotes" style="margin-top:12px"></label>
+        <input type="text" asp-for="BehaviourNotes"
+               placeholder="How was the pet during the session?">
+
+        <label asp-for="NextVisitRecommendation" style="margin-top:12px"></label>
+        <input type="text" asp-for="NextVisitRecommendation"
+               placeholder="Recommend next groom in 8 weeks">
+    </div>
+
+    <div class="card">
+        <label>Photos</label>
+        <p class="sub">JPG or PNG, up to 1 MB each. You can select several at once.</p>
+
+        <div class="uploadrow">
+            <div>
+                <label asp-for="BeforePhotos"></label>
+                <input type="file" asp-for="BeforePhotos" multiple accept="image/jpeg,image/png">
+            </div>
+            <div>
+                <label asp-for="AfterPhotos"></label>
+                <input type="file" asp-for="AfterPhotos" multiple accept="image/jpeg,image/png">
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn">Save Report Card</button>
+    <a asp-action="Detail" asp-route-id="@item.AppointmentId" class="btn ghost">Back to booking</a>
+</form>
+
+@if (photos.Count > 0)
+{
+    <h2>Saved Photos</h2>
+
+    @if (before.Count > 0 && after.Count > 0)
+    {
+        <div class="card">
+            <b>Before and after</b>
+            <p class="sub">Drag the handle to compare.</p>
+            <div class="ba" data-before="/photos/reports/@before[0].PhotoURL"
+                            data-after="/photos/reports/@after[0].PhotoURL"></div>
+        </div>
+    }
+
+    <div class="gallery">
+        @foreach (var p in photos)
+        {
+            <figure>
+                <img src="/photos/reports/@p.PhotoURL" alt="@p.PhotoType photo of @item.Pet.Name">
+                <figcaption>
+                    <span class="pill @(p.PhotoType == PhotoType.Before ? "pending" : "completed")">
+                        @p.PhotoType
+                    </span>
+                    <form asp-action="DeleteReportPhoto" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="photoId" value="@p.Id">
+                        <button type="submit" class="linkbtn">Remove</button>
+                    </form>
+                </figcaption>
+            </figure>
+        }
+    </div>
+}
+
+@section foot {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/before-after-slider.js" asp-append-version="true"></script>
+}

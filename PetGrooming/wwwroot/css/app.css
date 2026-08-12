@@ -451,3 +451,127 @@ main > h2 { font-size: 18px; margin: 26px 0 12px; }
 .refundbox details { margin-top: 10px; font-size: 13px; }
 .refundbox summary { cursor: pointer; color: var(--brand); font-weight: 600; }
 .refundbox ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); }
+
+/* --- grooming report card ------------------------------------------------ */
+
+.uploadrow { display: flex; gap: 16px; flex-wrap: wrap; }
+.uploadrow > div { flex: 1 1 220px; }
+input[type=file] { font: inherit; font-size: 13px; }
+
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.gallery figure {
+    margin: 0;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.gallery img { width: 100%; height: 130px; object-fit: cover; display: block; }
+
+.gallery figcaption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 9px;
+    gap: 6px;
+}
+
+.linkbtn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--bad);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* before / after comparison slider */
+
+.ba {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    user-select: none;
+    cursor: ew-resize;
+    background: var(--sand);
+    margin-top: 10px;
+}
+
+.ba-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* The clipped layer sits on top and is resized by the handle. */
+.ba-clip {
+    position: absolute;
+    inset: 0;
+    width: 50%;
+    overflow: hidden;
+}
+
+.ba-clip .ba-img { width: 560px; max-width: none; }
+
+.ba-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 3px;
+    margin-left: -1.5px;
+    background: #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+    cursor: ew-resize;
+}
+
+.ba-handle::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30px;
+    height: 30px;
+    margin: -15px 0 0 -15px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+}
+
+.ba-handle:focus { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.ba-tag {
+    position: absolute;
+    bottom: 10px;
+    background: rgba(44, 36, 32, 0.75);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    pointer-events: none;
+}
+
+.ba-tag-l { left: 10px; }
+.ba-tag-r { right: 10px; }
+
+.reportcard { border-left: 4px solid var(--brand); }
+.reportcard dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 8px 0 0; }
+.reportcard dt { color: var(--muted); font-size: 13px; }
+.reportcard dd { margin: 0; }
