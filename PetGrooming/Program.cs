@@ -1,29 +1,47 @@
-var builder = WebApplication.CreateBuilder(args);
+global using PetGrooming.Models;
+global using PetGrooming;
+global using Microsoft.EntityFrameworkCore;
 
-// Add services to the container.
+var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
+// NOTE: The practicals omit "Initial Catalog". Without it, EF cannot create the
+// .mdf on first run -- SQL Server reports error 15350 (auto-named attach failed)
+// instead of "database does not exist", so the migration aborts. Naming the
+// catalog lets EF create the file. It is still a file-based SQL Server Express
+// database as the assignment requires.
+builder.Services.AddSqlServer<DB>($@"
+    Data Source=(LocalDB)\MSSQLLocalDB;
+    AttachDbFilename={builder.Environment.ContentRootPath}\DB.mdf;
+    Initial Catalog=PetGroomingDB;
+    Integrated Security=True;
+    MultipleActiveResultSets=True;
+");
+builder.Services.AddScoped<Helper>();
+builder.Services.AddAuthentication().AddCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+});
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSession();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+// Apply pending migrations and seed demo data on startup, so a fresh clone runs
+// with a populated database without any manual steps.
+using (var scope = app.Services.CreateScope())
 {
-    app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    var db = scope.ServiceProvider.GetRequiredService<DB>();
+    var hp = scope.ServiceProvider.GetRequiredService<Helper>();
+    db.Database.Migrate();
+    Seeder.Seed(db, hp);
 }
 
 app.UseHttpsRedirection();
-app.UseRouting();
-
+app.UseStaticFiles();
+app.UseRequestLocalization("en-MY");
+app.UseSession();
+app.UseAuthentication();
 app.UseAuthorization();
-
-app.MapStaticAssets();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
-
-
+app.MapDefaultControllerRoute();
 app.Run();
