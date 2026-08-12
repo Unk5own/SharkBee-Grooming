@@ -1,8 +1,40 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewBag.Title = "Welcome to Pawfect Grooming";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="card">
+    <p>
+        Professional grooming for dogs and cats &mdash; book a package, pick your
+        groomer, and choose a time that suits you.
+    </p>
 </div>
+
+@if (ViewBag.Services != null)
+{
+    <h2>Our Services</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Service</th>
+                <th>Category</th>
+                <th class="num">Duration</th>
+                <th class="num">Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (Service s in ViewBag.Services)
+            {
+                <tr>
+                    <td>@s.Name<span class="sub">@s.Description</span></td>
+                    <td>@s.Category.Name</td>
+                    <td class="num">@s.DurationMinutes min</td>
+                    <td class="num">RM @s.Price.ToString("N2")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <p class="sub">
+        Browsing, filtering and booking are built by Student 2. This listing is a
+        placeholder so the catalog is visible while Checkout is developed.
+    </p>
+}

@@ -4,10 +4,16 @@ using PetGrooming.Models;
 
 namespace PetGrooming.Controllers;
 
-public class HomeController : Controller
+public class HomeController(DB db) : Controller
 {
+    // GET: Home/Index
     public IActionResult Index()
     {
+        ViewBag.Services = db.Services
+                             .Include(s => s.Category)
+                             .Where(s => s.Active)
+                             .OrderBy(s => s.CategoryId).ThenBy(s => s.Price)
+                             .ToList();
         return View();
     }
 

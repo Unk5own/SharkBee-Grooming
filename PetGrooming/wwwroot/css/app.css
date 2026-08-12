@@ -1,0 +1,271 @@
+/* ---------------------------------------------------------------------------
+   Pawfect Grooming -- hand-written stylesheet.
+   Deliberately not a CSS framework: the assignment awards more credit for code
+   written ourselves, and the whole system only needs one small design system.
+   --------------------------------------------------------------------------- */
+
+:root {
+    --ink: #2c2420;
+    --muted: #7a6a60;
+    --line: #e6ddd6;
+    --paper: #fffdfb;
+    --sand: #f7f1ea;
+    --brand: #b5622f;
+    --brand-dark: #8f4a20;
+    --ok: #2f7d52;
+    --ok-bg: #e6f4ec;
+    --bad: #b3261e;
+    --bad-bg: #fdecea;
+    --warn: #8a6100;
+    --warn-bg: #fdf3d8;
+    --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink);
+    background: var(--sand);
+}
+
+a { color: var(--brand); }
+
+/* --- flash message ------------------------------------------------------- */
+
+.info {
+    background: var(--ok-bg);
+    color: var(--ok);
+    border-bottom: 1px solid #bfe0cd;
+    padding: 10px 24px;
+    font-weight: 600;
+}
+
+/* --- chrome -------------------------------------------------------------- */
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 24px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+}
+
+header h1 { margin: 0; font-size: 20px; letter-spacing: -0.2px; }
+header h1 a { color: var(--ink); text-decoration: none; }
+
+.who { font-size: 13px; color: var(--muted); }
+
+.role {
+    display: inline-block;
+    background: var(--brand);
+    color: #fff;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-right: 6px;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 16px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+}
+
+nav a {
+    padding: 11px 12px;
+    text-decoration: none;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 2px solid transparent;
+}
+
+nav a:hover { color: var(--brand); border-bottom-color: var(--brand); }
+nav .spacer { flex: 1; }
+
+.devbar {
+    background: #2c2420;
+    color: #d9cfc7;
+    padding: 7px 24px;
+    font-size: 12px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.devbar b { color: #ffb782; letter-spacing: 1px; }
+.devbar a { color: #ffd9bd; }
+.devbar span { color: #8a7c73; }
+
+main {
+    max-width: 980px;
+    margin: 24px auto 48px;
+    padding: 0 24px;
+}
+
+main > h1 { font-size: 24px; margin: 0 0 18px; }
+
+footer {
+    border-top: 1px solid var(--line);
+    padding: 16px 24px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+/* --- cards and tables ---------------------------------------------------- */
+
+.card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 18px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+th, td {
+    text-align: left;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+}
+
+th {
+    background: var(--sand);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+}
+
+tbody tr:last-child td { border-bottom: none; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+
+tr.unavailable { background: var(--bad-bg); }
+
+.sub { display: block; font-size: 12px; color: var(--muted); }
+
+/* --- totals -------------------------------------------------------------- */
+
+.totals {
+    margin-left: auto;
+    width: 320px;
+    max-width: 100%;
+}
+
+.totals div {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+}
+
+.totals .grand {
+    border-top: 2px solid var(--ink);
+    margin-top: 6px;
+    padding-top: 10px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* --- forms and buttons --------------------------------------------------- */
+
+label { font-weight: 600; display: block; margin-bottom: 4px; }
+
+textarea, input[type=text], select {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font: inherit;
+    background: #fff;
+}
+
+.choice {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.choice input { margin-top: 3px; }
+.choice.disabled { opacity: 0.55; }
+
+.btn {
+    display: inline-block;
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 20px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn:hover { background: var(--brand-dark); }
+.btn.ghost { background: transparent; color: var(--brand); border: 1px solid var(--line); }
+
+/* --- validation ---------------------------------------------------------- */
+
+.field-validation-error, .validation-summary-errors {
+    color: var(--bad);
+    font-size: 13px;
+}
+
+.validation-summary-errors {
+    background: var(--bad-bg);
+    border: 1px solid #f2c2bd;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 18px;
+}
+
+.validation-summary-errors ul { margin: 0; padding-left: 18px; }
+.input-validation-error { border-color: var(--bad); }
+
+/* --- status pills -------------------------------------------------------- */
+
+.pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.pill.confirmed, .pill.completed { background: var(--ok-bg); color: var(--ok); }
+.pill.pending, .pill.checkedin, .pill.inprogress { background: var(--warn-bg); color: var(--warn); }
+.pill.cancelled, .pill.noshow { background: var(--bad-bg); color: var(--bad); }
+
+.empty { color: var(--muted); font-style: italic; }
