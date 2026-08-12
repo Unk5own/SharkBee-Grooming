@@ -73,11 +73,21 @@
             </span>
         </label>
 
-        <label class="choice disabled">
-            <input type="radio" asp-for="Method" value="@PaymentMethod.Stripe" disabled>
+        <label class="choice @(ViewBag.CardAvailable == true ? "" : "disabled")">
+            <input type="radio" asp-for="Method" value="@PaymentMethod.Stripe"
+                   disabled="@(ViewBag.CardAvailable != true)">
             <span>
                 <b>Pay Online by Card</b>
-                <span class="sub">Coming soon.</span>
+                @if (ViewBag.CardAvailable == true)
+                {
+                    <span class="sub">
+                        Secure payment page hosted by Stripe. Test card 4242 4242 4242 4242.
+                    </span>
+                }
+                else
+                {
+                    <span class="sub">Unavailable &mdash; card payments are not configured.</span>
+                }
             </span>
         </label>
 

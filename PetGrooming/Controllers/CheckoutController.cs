@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 namespace PetGrooming.Controllers;
 
 [Authorize(Roles = "Member")]
-public class CheckoutController(DB db, Helper hp, IConfiguration cf) : Controller
+public class CheckoutController(DB db, Helper hp, StripeService stripe, IConfiguration cf) : Controller
 {
     // GET: Checkout/Index
     public IActionResult Index()
     {
+        ExpireStalePending();
+
         var vm = BuildCheckout();
 
         if (vm.Lines.Count == 0)
@@ -18,6 +20,7 @@ public class CheckoutController(DB db, Helper hp, IConfiguration cf) : Controlle
         }
 
         ViewBag.Title = "Checkout";
+        ViewBag.CardAvailable = stripe.IsConfigured;
         return View(vm);
     }
 
@@ -46,16 +49,16 @@ public class CheckoutController(DB db, Helper hp, IConfiguration cf) : Controlle
                                          "Please remove or rebook the highlighted lines.");
         }
 
-        // Stripe arrives in a later phase; for now only counter payment completes.
-        if (vm.Method == PaymentMethod.Stripe)
+        if (vm.Method == PaymentMethod.Stripe && !stripe.IsConfigured)
         {
-            ModelState.AddModelError("Method", "Online payment is not available yet. " +
+            ModelState.AddModelError("Method", "Card payment is not available right now. " +
                                                "Please choose Pay at Counter.");
         }
 
         if (!ModelState.IsValid)
         {
             ViewBag.Title = "Checkout";
+            ViewBag.CardAvailable = stripe.IsConfigured;
             return View("Index", vm);
         }
 
@@ -106,12 +109,18 @@ public class CheckoutController(DB db, Helper hp, IConfiguration cf) : Controlle
             }
         }
 
+        // A card booking is only Pending until Stripe confirms the payment. The
+        // slot is still held, because availability ignores Cancelled items only.
+        var payingByCard = vm.Method == PaymentMethod.Stripe;
+        var status = payingByCard ? AppointmentStatus.Pending : AppointmentStatus.Confirmed;
+        var amountDue = vm.DepositOnly ? vm.DepositAmount : vm.Total;
+
         var appointment = new Appointment
         {
             BookingRef = hp.NextBookingRef(),
             MemberEmail = email,
             CreatedAt = DateTime.Now,
-            Status = AppointmentStatus.Confirmed,
+            Status = status,
             Subtotal = vm.Subtotal,
             Discount = vm.Discount,
             Total = vm.Total,
@@ -130,28 +139,31 @@ public class CheckoutController(DB db, Helper hp, IConfiguration cf) : Controlle
                 SlotStart = line.Item.SlotStart,
                 SlotEnd = line.SlotEnd,
                 UnitPrice = line.Service.Price,
-                ItemStatus = AppointmentStatus.Confirmed,
+                ItemStatus = status,
             });
         }
 
-        // Counter payment is settled on the day, so the row is recorded as
-        // outstanding rather than paid.
         appointment.Payments.Add(new Payment
         {
-            Method = PaymentMethod.Counter,
+            Method = vm.Method,
             Status = PaymentStatus.Pending,
-            Amount = vm.DepositOnly ? vm.DepositAmount : vm.Total,
+            Amount = amountDue,
             ProviderRef = "",
         });
 
-        appointment.StatusHistories.Add(new AppointmentStatusHistory
+        // Counter bookings are confirmed immediately; card bookings only after
+        // Stripe reports the payment, so their trail starts in PaymentSuccess.
+        if (!payingByCard)
         {
-            FromStatus = AppointmentStatus.Pending,
-            ToStatus = AppointmentStatus.Confirmed,
-            ChangedAt = DateTime.Now,
-            ChangedByEmail = email,
-            Remark = "Booking confirmed, payment due at counter",
-        });
+            appointment.StatusHistories.Add(new AppointmentStatusHistory
+            {
+                FromStatus = AppointmentStatus.Pending,
+                ToStatus = AppointmentStatus.Confirmed,
+                ChangedAt = DateTime.Now,
+                ChangedByEmail = email,
+                Remark = "Booking confirmed, payment due at counter",
+            });
+        }
 
         db.Appointments.Add(appointment);
 
@@ -173,16 +185,113 @@ public class CheckoutController(DB db, Helper hp, IConfiguration cf) : Controlle
 
         hp.SetCart(null);
 
-        // Email the e-receipt. A mail failure must not undo a confirmed booking,
-        // so the outcome is reported rather than thrown.
-        var saved = Load(appointment.Id)!;
-        var problem = hp.EmailReceipt(saved, hp.GenerateReceipt(saved));
+        if (payingByCard)
+        {
+            var url = stripe.CreateCheckoutSession(
+                Load(appointment.Id)!,
+                amountDue,
+                Url.Action("PaymentSuccess", "Checkout",
+                           new { id = appointment.Id }, Request.Scheme)!
+                    + "&session_id={CHECKOUT_SESSION_ID}",
+                Url.Action("PaymentCancelled", "Checkout",
+                           new { id = appointment.Id }, Request.Scheme)!);
 
-        TempData["Info"] = problem == ""
-            ? $"Booking {appointment.BookingRef} confirmed. The e-receipt has been emailed to you."
-            : $"Booking {appointment.BookingRef} confirmed. {problem}";
+            if (url == null)
+            {
+                TempData["Info"] = $"Booking {appointment.BookingRef} was created but the " +
+                                   "payment page could not be opened. You can pay at the counter.";
+                return RedirectToAction("Complete", new { id = appointment.Id });
+            }
 
-        return RedirectToAction("Complete", new { id = appointment.Id });
+            return Redirect(url);
+        }
+
+        return CompleteBooking(appointment.Id);
+    }
+
+    // GET: Checkout/PaymentSuccess
+    // Stripe redirects here after a successful payment. The redirect itself
+    // proves nothing -- anyone could type this URL -- so the session is verified
+    // server to server with Stripe before any payment is recorded.
+    public IActionResult PaymentSuccess(int id, string? session_id)
+    {
+        var appointment = Load(id);
+
+        if (appointment == null || appointment.MemberEmail != User.Identity!.Name)
+        {
+            TempData["Info"] = "Booking not found.";
+            return RedirectToAction("Index", "Home");
+        }
+
+        // Already processed, e.g. the member refreshed the page.
+        if (appointment.Status != AppointmentStatus.Pending)
+        {
+            return RedirectToAction("Complete", new { id });
+        }
+
+        var (paid, intentId, amount) = stripe.VerifySession(session_id ?? "");
+
+        if (!paid)
+        {
+            TempData["Info"] = "We could not confirm your card payment. " +
+                               "Your booking is still held -- you may retry or pay at the counter.";
+            return RedirectToAction("Complete", new { id });
+        }
+
+        var payment = appointment.Payments.FirstOrDefault();
+
+        if (payment != null)
+        {
+            payment.Status = PaymentStatus.Paid;
+            payment.ProviderRef = intentId;
+            payment.PaidAt = DateTime.Now;
+            if (amount > 0) payment.Amount = amount;
+        }
+
+        appointment.Status = AppointmentStatus.Confirmed;
+
+        foreach (var item in appointment.Items)
+        {
+            item.ItemStatus = AppointmentStatus.Confirmed;
+        }
+
+        db.AppointmentStatusHistories.Add(new AppointmentStatusHistory
+        {
+            AppointmentId = appointment.Id,
+            FromStatus = AppointmentStatus.Pending,
+            ToStatus = AppointmentStatus.Confirmed,
+            ChangedAt = DateTime.Now,
+            ChangedByEmail = appointment.MemberEmail,
+            Remark = "Card payment received via Stripe",
+        });
+
+        db.SaveChanges();
+
+        return CompleteBooking(id);
+    }
+
+    // GET: Checkout/PaymentCancelled
+    // The member backed out on Stripe's page. Release the held slots rather than
+    // leaving them locked by an abandoned booking.
+    public IActionResult PaymentCancelled(int id)
+    {
+        var appointment = Load(id);
+
+        if (appointment == null || appointment.MemberEmail != User.Identity!.Name)
+        {
+            TempData["Info"] = "Booking not found.";
+            return RedirectToAction("Index", "Home");
+        }
+
+        if (appointment.Status == AppointmentStatus.Pending)
+        {
+            ReleasePending(appointment, "Payment cancelled by member");
+            db.SaveChanges();
+        }
+
+        TempData["Info"] = "Payment was cancelled, so the booking was not taken. " +
+                           "Your slots have been released.";
+        return RedirectToAction("Index", "Home");
     }
 
     // GET: Checkout/Complete
@@ -279,6 +388,70 @@ public class CheckoutController(DB db, Helper hp, IConfiguration cf) : Controlle
 
         return vm;
     }
+
+    // Emails the receipt and sends the member to the confirmation page. Shared by
+    // the counter path and the card path so both behave identically once paid.
+    private IActionResult CompleteBooking(int id)
+    {
+        var saved = Load(id)!;
+
+        // A mail failure must never undo a confirmed booking, so the outcome is
+        // reported rather than thrown.
+        var problem = hp.EmailReceipt(saved, hp.GenerateReceipt(saved));
+
+        TempData["Info"] = problem == ""
+            ? $"Booking {saved.BookingRef} confirmed. The e-receipt has been emailed to you."
+            : $"Booking {saved.BookingRef} confirmed. {problem}";
+
+        return RedirectToAction("Complete", new { id });
+    }
+
+    // Cancels a booking that never got paid, freeing its slots.
+    private void ReleasePending(Appointment appointment, string reason)
+    {
+        appointment.Status = AppointmentStatus.Cancelled;
+        appointment.CancelledAt = DateTime.Now;
+        appointment.CancelReason = reason;
+
+        foreach (var item in appointment.Items)
+        {
+            item.ItemStatus = AppointmentStatus.Cancelled;
+        }
+
+        db.AppointmentStatusHistories.Add(new AppointmentStatusHistory
+        {
+            AppointmentId = appointment.Id,
+            FromStatus = AppointmentStatus.Pending,
+            ToStatus = AppointmentStatus.Cancelled,
+            ChangedAt = DateTime.Now,
+            ChangedByEmail = appointment.MemberEmail,
+            Remark = reason,
+        });
+    }
+
+    // A member who closes the Stripe tab never reaches PaymentCancelled, so their
+    // unpaid booking would hold its slots indefinitely. Anything left Pending for
+    // longer than the payment window is released.
+    private void ExpireStalePending()
+    {
+        var cutoff = DateTime.Now.AddMinutes(-PaymentWindowMinutes);
+
+        var stale = db.Appointments
+                      .Include(a => a.Items)
+                      .Where(a => a.Status == AppointmentStatus.Pending && a.CreatedAt < cutoff)
+                      .ToList();
+
+        if (stale.Count == 0) return;
+
+        foreach (var appointment in stale)
+        {
+            ReleasePending(appointment, "Payment not completed in time");
+        }
+
+        db.SaveChanges();
+    }
+
+    private const int PaymentWindowMinutes = 20;
 
     // Exclusive, transaction-scoped lock on an arbitrary string key. Released
     // automatically when the transaction commits or rolls back. A negative result

@@ -14,6 +14,7 @@
     </PackageReference>
     <PackageReference Include="QuestPDF" Version="2026.7.3" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="Stripe.net" Version="52.3.0" />
     <PackageReference Include="X.PagedList.Mvc.Core" Version="10.5.9" />
   </ItemGroup>
 

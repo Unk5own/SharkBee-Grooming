@@ -292,7 +292,15 @@ public static class Seeder
     {
         var price = service.Price;
         var deposit = Math.Round(price * 0.3m, 2);
+
+        // Booked some time before the slot -- but never in the future, which is
+        // what naively subtracting from a future slot would produce.
         var createdAt = slot.AddDays(-rnd.Next(1, 21)).AddHours(-rnd.Next(1, 10));
+
+        if (createdAt > DateTime.Now)
+        {
+            createdAt = DateTime.Now.AddHours(-rnd.Next(1, 72));
+        }
 
         var appointment = new Appointment
         {
