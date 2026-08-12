@@ -10,6 +10,38 @@ namespace PetGrooming.Controllers;
 // file once the real booking module is integrated.
 public class DevSeedController(DB db, Helper hp, IWebHostEnvironment en) : Controller
 {
+    // GET: DevSeed/LoginAs
+    // Stands in for Student 1's Account/Login until Security is integrated.
+    public IActionResult LoginAs(string email)
+    {
+        if (!en.IsDevelopment()) return NotFound();
+
+        var user = db.Users.FirstOrDefault(u => u.Email == email);
+
+        if (user == null)
+        {
+            TempData["Info"] = $"No such user: {email}";
+            return RedirectToAction("Index", "Home");
+        }
+
+        hp.SignIn(user.Email, user.Role, false);
+
+        TempData["Info"] = $"Signed in as {user.Name} ({user.Role}).";
+        return RedirectToAction("Index", "Home");
+    }
+
+    // GET: DevSeed/Logout
+    public IActionResult Logout()
+    {
+        if (!en.IsDevelopment()) return NotFound();
+
+        hp.SignOut();
+        hp.SetCart(null);
+
+        TempData["Info"] = "Signed out.";
+        return RedirectToAction("Index", "Home");
+    }
+
     // GET: DevSeed/FakeCart
     public IActionResult FakeCart(string? email, int lines = 2)
     {
@@ -50,7 +82,25 @@ public class DevSeedController(DB db, Helper hp, IWebHostEnvironment en) : Contr
         hp.SetCart(cart);
 
         TempData["Info"] = $"Fake cart created for {email} with {cart.Count} line(s).";
-        return RedirectToAction("ShowCart");
+        return RedirectToAction("Index", "Checkout");
+    }
+
+    // GET: DevSeed/SetCart
+    // Places one exact line in the cart. Used to drive two sessions at the same
+    // slot on purpose, so the double-booking guard can be tested.
+    public IActionResult SetCart(int petId, string serviceId, string staffEmail, DateTime slotStart)
+    {
+        if (!en.IsDevelopment()) return NotFound();
+
+        hp.SetCart([new BookingCartItem
+        {
+            PetId = petId,
+            ServiceId = serviceId,
+            StaffEmail = staffEmail,
+            SlotStart = slotStart,
+        }]);
+
+        return Json(new { ok = true, petId, serviceId, staffEmail, slotStart });
     }
 
     // GET: DevSeed/ShowCart
