@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using QuestPDF.Fluent;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using System.Net;
@@ -231,5 +232,82 @@ public class Helper(IWebHostEnvironment en,
     {
         var suffix = Guid.NewGuid().ToString("N")[..4].ToUpper();
         return $"PG-{DateTime.Today:yyyyMMdd}-{suffix}";
+    }
+
+
+
+    // ------------------------------------------------------------------------
+    // E-Receipt Helper Functions
+    // ------------------------------------------------------------------------
+
+    // The appointment must already have Items (with Pet, Service and Staff),
+    // Payments and Member loaded.
+    public byte[] GenerateReceipt(Appointment appointment)
+    {
+        return new ReceiptDocument(appointment).GeneratePdf();
+    }
+
+    public string ReceiptFileName(Appointment appointment)
+    {
+        return $"Receipt-{appointment.BookingRef}.pdf";
+    }
+
+    // True when real SMTP credentials have been configured. The committed
+    // appsettings.json ships placeholders, so a developer who has not set up a
+    // Gmail app password does not get a failed send on every booking.
+    public bool IsEmailConfigured()
+    {
+        var user = cf["Smtp:User"] ?? "";
+        var pass = cf["Smtp:Pass"] ?? "";
+
+        return user.Contains('@')
+            && !user.StartsWith("your.account")
+            && !pass.StartsWith("xxxx");
+    }
+
+    // Emails the e-receipt as a PDF attachment. Returns an empty string on
+    // success, otherwise the reason it did not send -- a booking must never fail
+    // just because the mail server is unreachable.
+    public string EmailReceipt(Appointment appointment, byte[] pdf)
+    {
+        if (!IsEmailConfigured())
+        {
+            return "Email is not configured, so the receipt was not sent.";
+        }
+
+        try
+        {
+            var mail = new MailMessage
+            {
+                Subject = $"Your Pawfect Grooming booking {appointment.BookingRef}",
+                IsBodyHtml = true,
+                Body = $@"
+                    <p>Hi {appointment.Member?.Name ?? "there"},</p>
+                    <p>
+                        Your booking <b>{appointment.BookingRef}</b> is confirmed.
+                        The e-receipt is attached to this email.
+                    </p>
+                    <p>
+                        Total: <b>RM {appointment.Total:N2}</b><br>
+                        First appointment:
+                        <b>{appointment.Items.Min(i => i.SlotStart):ddd, d MMM yyyy h:mm tt}</b>
+                    </p>
+                    <p>Please arrive about ten minutes early so we can check your pet in.</p>
+                    <p>&mdash; Pawfect Grooming</p>",
+            };
+
+            mail.To.Add(new MailAddress(appointment.MemberEmail));
+
+            var stream = new MemoryStream(pdf);
+            mail.Attachments.Add(new Attachment(stream, ReceiptFileName(appointment),
+                                                "application/pdf"));
+
+            SendEmail(mail);
+            return "";
+        }
+        catch (Exception ex)
+        {
+            return $"The receipt email could not be sent ({ex.Message}).";
+        }
     }
 }

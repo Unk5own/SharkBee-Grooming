@@ -76,5 +76,6 @@
     </div>
 }
 
-<a href="/MyAppointment/Index" class="btn">View My Appointments</a>
+<a asp-action="Receipt" asp-route-id="@Model.Id" class="btn">Download E-Receipt (PDF)</a>
+<a href="/MyAppointment/Index" class="btn ghost">View My Appointments</a>
 <a href="/" class="btn ghost">Back to Home</a>

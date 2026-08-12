@@ -173,19 +173,22 @@ public class CheckoutController(DB db, Helper hp, IConfiguration cf) : Controlle
 
         hp.SetCart(null);
 
-        TempData["Info"] = $"Booking {appointment.BookingRef} confirmed.";
+        // Email the e-receipt. A mail failure must not undo a confirmed booking,
+        // so the outcome is reported rather than thrown.
+        var saved = Load(appointment.Id)!;
+        var problem = hp.EmailReceipt(saved, hp.GenerateReceipt(saved));
+
+        TempData["Info"] = problem == ""
+            ? $"Booking {appointment.BookingRef} confirmed. The e-receipt has been emailed to you."
+            : $"Booking {appointment.BookingRef} confirmed. {problem}";
+
         return RedirectToAction("Complete", new { id = appointment.Id });
     }
 
     // GET: Checkout/Complete
     public IActionResult Complete(int id)
     {
-        var m = db.Appointments
-                  .Include(a => a.Items).ThenInclude(i => i.Pet)
-                  .Include(a => a.Items).ThenInclude(i => i.Service)
-                  .Include(a => a.Items).ThenInclude(i => i.Staff)
-                  .Include(a => a.Payments)
-                  .FirstOrDefault(a => a.Id == id);
+        var m = Load(id);
 
         // A member must not be able to read someone else's booking by changing
         // the id in the URL.
@@ -197,6 +200,35 @@ public class CheckoutController(DB db, Helper hp, IConfiguration cf) : Controlle
 
         ViewBag.Title = "Booking Confirmed";
         return View(m);
+    }
+
+    // GET: Checkout/Receipt
+    // Re-downloadable at any time, which is why the PDF is generated on demand
+    // rather than stored on disk.
+    public IActionResult Receipt(int id)
+    {
+        var m = Load(id);
+
+        if (m == null || m.MemberEmail != User.Identity!.Name)
+        {
+            TempData["Info"] = "Booking not found.";
+            return RedirectToAction("Index", "Home");
+        }
+
+        return File(hp.GenerateReceipt(m), "application/pdf", hp.ReceiptFileName(m));
+    }
+
+    // Loads an appointment with everything the receipt and the confirmation page
+    // need, in one query.
+    private Appointment? Load(int id)
+    {
+        return db.Appointments
+                 .Include(a => a.Member)
+                 .Include(a => a.Items).ThenInclude(i => i.Pet)
+                 .Include(a => a.Items).ThenInclude(i => i.Service)
+                 .Include(a => a.Items).ThenInclude(i => i.Staff)
+                 .Include(a => a.Payments)
+                 .FirstOrDefault(a => a.Id == id);
     }
 
 
