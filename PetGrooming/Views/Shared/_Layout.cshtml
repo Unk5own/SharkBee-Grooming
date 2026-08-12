@@ -41,6 +41,7 @@
         @if (User.IsInRole("Staff") || User.IsInRole("Admin"))
         {
             <a href="/Appointment/Index">Appointments</a>
+            <a href="/Appointment/Board">Schedule Board</a>
         }
 
         @if (User.IsInRole("Admin"))

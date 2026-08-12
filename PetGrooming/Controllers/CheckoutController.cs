@@ -77,14 +77,14 @@ public class CheckoutController(DB db, Helper hp, StripeService stripe, IConfigu
         // sorted so that every session acquires them in the same order, which is
         // what stops two multi-line bookings from deadlocking on each other.
         var keys = vm.Lines
-                     .Select(l => $"slot:{l.Item.StaffEmail}:{l.Item.SlotStart:yyyyMMddHHmm}")
+                     .Select(l => Extensions.SlotKey(l.Item.StaffEmail, l.Item.SlotStart))
                      .Distinct()
                      .OrderBy(k => k, StringComparer.Ordinal)
                      .ToList();
 
         foreach (var key in keys)
         {
-            if (!TryLockSlot(key))
+            if (!db.TryLockSlot(key))
             {
                 tx.Rollback();
                 ModelState.AddModelError("", "Another booking for one of these slots is being " +
@@ -452,22 +452,6 @@ public class CheckoutController(DB db, Helper hp, StripeService stripe, IConfigu
     }
 
     private const int PaymentWindowMinutes = 20;
-
-    // Exclusive, transaction-scoped lock on an arbitrary string key. Released
-    // automatically when the transaction commits or rolls back. A negative result
-    // means the lock could not be taken within the timeout.
-    private bool TryLockSlot(string resource)
-    {
-        const string sql = @"
-            DECLARE @result int;
-            EXEC @result = sp_getapplock @Resource = {0},
-                                         @LockMode = 'Exclusive',
-                                         @LockOwner = 'Transaction',
-                                         @LockTimeout = 5000;
-            SELECT @result AS Value;";
-
-        return db.Database.SqlQueryRaw<int>(sql, resource).AsEnumerable().First() >= 0;
-    }
 
     // Student 2 owns the full availability service. Checkout only needs the
     // narrow question of whether this groomer is free for this interval.

@@ -7,7 +7,7 @@ namespace PetGrooming.Controllers;
 // Day-to-day salon operations: who is coming in today, checking pets in, moving
 // bookings through grooming, and recording no-shows.
 [Authorize(Roles = "Staff,Admin")]
-public class AppointmentController(DB db) : Controller
+public class AppointmentController(DB db, IConfiguration cf) : Controller
 {
     // GET: Appointment/Index
     public IActionResult Index(DateOnly? date, AppointmentStatus? status,
@@ -34,6 +34,196 @@ public class AppointmentController(DB db) : Controller
 
         ViewBag.Title = $"Appointments for {day:ddd, d MMM yyyy}";
         return View(items);
+    }
+
+    // GET: Appointment/Board
+    // The day laid out as groomer columns against time rows, so the whole salon
+    // is visible at once and bookings can be dragged to a different groomer or
+    // time.
+    public IActionResult Board(DateOnly? date)
+    {
+        var day = date ?? DateOnly.FromDateTime(DateTime.Today);
+        var from = day.ToDateTime(TimeOnly.MinValue);
+        var to = from.AddDays(1);
+
+        var groomers = db.Staffs.Where(s => s.Active).OrderBy(s => s.Name).ToList();
+        var schedules = db.StaffSchedules.Where(s => s.Day == day.DayOfWeek).ToList();
+        var timeOffs = db.StaffTimeOffs
+                         .Where(t => day >= t.StartDate && day <= t.EndDate)
+                         .ToList();
+
+        var items = db.AppointmentItems
+                      .Include(i => i.Appointment).ThenInclude(a => a.Member)
+                      .Include(i => i.Pet)
+                      .Include(i => i.Service)
+                      .Where(i => i.SlotStart >= from && i.SlotStart < to
+                               && i.ItemStatus != AppointmentStatus.Cancelled)
+                      .ToList();
+
+        var vm = new ScheduleBoardVM
+        {
+            Date = day,
+            SlotMinutes = cf.GetValue<int>("Booking:SlotMinutes"),
+        };
+
+        foreach (var g in groomers)
+        {
+            var shift = schedules.FirstOrDefault(s => s.StaffEmail == g.Email);
+
+            vm.Columns.Add(new BoardColumnVM
+            {
+                Staff = g,
+                ShiftStart = shift?.StartTime,
+                ShiftEnd = shift?.EndTime,
+                OnLeave = timeOffs.Any(t => t.StaffEmail == g.Email),
+                Items = items.Where(i => i.StaffEmail == g.Email)
+                             .OrderBy(i => i.SlotStart)
+                             .ToList(),
+            });
+        }
+
+        // Rows span the working day, widened if a booking sits outside every shift.
+        var open = vm.Columns.Where(c => c.ShiftStart != null).Select(c => c.ShiftStart!.Value).ToList();
+        var close = vm.Columns.Where(c => c.ShiftEnd != null).Select(c => c.ShiftEnd!.Value).ToList();
+
+        var first = open.Count > 0 ? open.Min() : new TimeOnly(9, 0);
+        var last = close.Count > 0 ? close.Max() : new TimeOnly(18, 0);
+
+        if (items.Count > 0)
+        {
+            var earliest = TimeOnly.FromDateTime(items.Min(i => i.SlotStart));
+            var latest = TimeOnly.FromDateTime(items.Max(i => i.SlotEnd));
+            if (earliest < first) first = earliest;
+            if (latest > last) last = latest;
+        }
+
+        for (var t = first; t < last; t = t.AddMinutes(vm.SlotMinutes))
+        {
+            vm.Slots.Add(t);
+        }
+
+        ViewBag.Title = $"Schedule Board for {day:ddd, d MMM yyyy}";
+        ViewBag.CanDrag = User.IsInRole("Admin") || User.IsInRole("Staff");
+        return View(vm);
+    }
+
+    // POST: Appointment/Reschedule
+    // Called by the board when a booking is dropped on a new cell. Returns JSON
+    // so the page can revert the block if the move is refused.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Reschedule(int itemId, string staffEmail, DateTime slotStart)
+    {
+        var item = db.AppointmentItems
+                     .Include(i => i.Appointment)
+                     .Include(i => i.Service)
+                     .FirstOrDefault(i => i.Id == itemId);
+
+        if (item == null)
+        {
+            return Json(new { ok = false, error = "That booking no longer exists." });
+        }
+
+        if (!CanTouch(item.Appointment))
+        {
+            return Json(new { ok = false, error = "That booking belongs to another groomer." });
+        }
+
+        // A groomer may only move work onto themselves; an admin may reassign.
+        if (!User.IsInRole("Admin") && staffEmail != User.Identity!.Name)
+        {
+            return Json(new { ok = false, error = "You can only move bookings onto your own column." });
+        }
+
+        if (AppointmentWorkflow.IsTerminal(item.ItemStatus))
+        {
+            return Json(new { ok = false, error = $"A {item.ItemStatus} booking cannot be moved." });
+        }
+
+        var target = db.Staffs.FirstOrDefault(s => s.Email == staffEmail && s.Active);
+
+        if (target == null)
+        {
+            return Json(new { ok = false, error = "That groomer is not available." });
+        }
+
+        var slotEnd = slotStart.AddMinutes(item.Service.DurationMinutes);
+        var day = DateOnly.FromDateTime(slotStart);
+
+        var shift = db.StaffSchedules
+                      .FirstOrDefault(s => s.StaffEmail == staffEmail && s.Day == day.DayOfWeek);
+
+        if (shift == null)
+        {
+            return Json(new { ok = false, error = $"{target.Name} does not work on {day.DayOfWeek}." });
+        }
+
+        if (TimeOnly.FromDateTime(slotStart) < shift.StartTime ||
+            TimeOnly.FromDateTime(slotEnd) > shift.EndTime)
+        {
+            return Json(new
+            {
+                ok = false,
+                error = $"That runs outside {target.Name}'s shift " +
+                        $"({shift.StartTime:h:mm tt} to {shift.EndTime:h:mm tt})."
+            });
+        }
+
+        if (db.StaffTimeOffs.Any(t => t.StaffEmail == staffEmail
+                                   && day >= t.StartDate && day <= t.EndDate))
+        {
+            return Json(new { ok = false, error = $"{target.Name} is on leave that day." });
+        }
+
+        using var tx = db.Database.BeginTransaction();
+
+        if (!db.TryLockSlot(Extensions.SlotKey(staffEmail, slotStart)))
+        {
+            tx.Rollback();
+            return Json(new { ok = false, error = "That slot is busy right now. Try again." });
+        }
+
+        var clash = db.AppointmentItems.Any(i =>
+            i.Id != itemId &&
+            i.StaffEmail == staffEmail &&
+            i.ItemStatus != AppointmentStatus.Cancelled &&
+            i.SlotStart < slotEnd && slotStart < i.SlotEnd);
+
+        if (clash)
+        {
+            tx.Rollback();
+            return Json(new { ok = false, error = $"{target.Name} already has a booking then." });
+        }
+
+        var wasStaff = item.StaffEmail;
+        var wasStart = item.SlotStart;
+
+        item.StaffEmail = staffEmail;
+        item.SlotStart = slotStart;
+        item.SlotEnd = slotEnd;
+
+        // Reuse the status trail as a general activity log for this booking. The
+        // status itself does not change, so From and To are the same.
+        db.AppointmentStatusHistories.Add(new AppointmentStatusHistory
+        {
+            AppointmentId = item.AppointmentId,
+            FromStatus = item.ItemStatus,
+            ToStatus = item.ItemStatus,
+            ChangedAt = DateTime.Now,
+            ChangedByEmail = User.Identity!.Name!,
+            Remark = $"Rescheduled from {wasStart:d MMM h:mm tt} to {slotStart:d MMM h:mm tt}"
+                   + (wasStaff == staffEmail ? "" : $", reassigned to {target.Name}"),
+        });
+
+        db.SaveChanges();
+        tx.Commit();
+
+        return Json(new
+        {
+            ok = true,
+            message = $"Moved to {slotStart:h:mm tt} with {target.Name}.",
+            slotEnd = slotEnd.ToString("o"),
+        });
     }
 
     // GET: Appointment/Detail

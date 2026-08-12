@@ -1,0 +1,115 @@
+@model ScheduleBoardVM
+@{
+    var slots = Model.Slots;
+    // Row 1 is the header, so a slot at index n sits on grid row n + 2.
+    int RowOf(DateTime when)
+    {
+        var t = TimeOnly.FromDateTime(when);
+        var minutes = (t - slots[0]).TotalMinutes;
+        return (int)(minutes / Model.SlotMinutes) + 2;
+    }
+}
+
+<div class="card">
+    <div class="daynav">
+        <a asp-action="Board" asp-route-date="@Model.Date.AddDays(-1).ToString("yyyy-MM-dd")">&larr; Previous day</a>
+        <a asp-action="Board" asp-route-date="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")">Today</a>
+        <a asp-action="Board" asp-route-date="@Model.Date.AddDays(1).ToString("yyyy-MM-dd")">Next day &rarr;</a>
+        <span class="spacer"></span>
+        <a asp-action="Index" asp-route-date="@Model.Date.ToString("yyyy-MM-dd")">List view</a>
+    </div>
+    <p class="sub">
+        Drag a booking onto another time or groomer to reschedule it.
+        Moves outside a groomer's shift, onto leave, or over an existing booking are refused.
+    </p>
+</div>
+
+@Html.AntiForgeryToken()
+
+<div id="board-msg" class="boardmsg" hidden></div>
+
+@if (slots.Count == 0)
+{
+    <p class="empty">No groomers are rostered on this day.</p>
+}
+else
+{
+    <div class="boardwrap">
+        <div class="board"
+             style="grid-template-columns: 80px repeat(@Model.Columns.Count, minmax(160px, 1fr));
+                    grid-template-rows: 40px repeat(@slots.Count, 34px);">
+
+            <div class="board-corner"></div>
+
+            @foreach (var col in Model.Columns)
+            {
+                <div class="board-head">
+                    @col.Staff.Name
+                    @if (col.OnLeave)
+                    {
+                        <span class="pill cancelled">On leave</span>
+                    }
+                    else if (col.ShiftStart == null)
+                    {
+                        <span class="pill cancelled">Not working</span>
+                    }
+                    else
+                    {
+                        <span class="sub">@col.ShiftStart.Value.ToString("h:mm tt") &ndash; @col.ShiftEnd!.Value.ToString("h:mm tt")</span>
+                    }
+                </div>
+            }
+
+            @for (int r = 0; r < slots.Count; r++)
+            {
+                <div class="board-time" style="grid-row: @(r + 2); grid-column: 1;">
+                    @slots[r].ToString("h:mm tt")
+                </div>
+            }
+
+            @for (int c = 0; c < Model.Columns.Count; c++)
+            {
+                var col = Model.Columns[c];
+
+                @for (int r = 0; r < slots.Count; r++)
+                {
+                    var inShift = col.ShiftStart != null && !col.OnLeave
+                               && slots[r] >= col.ShiftStart && slots[r] < col.ShiftEnd;
+
+                    <div class="board-cell @(inShift ? "" : "closed")"
+                         style="grid-row: @(r + 2); grid-column: @(c + 2);"
+                         data-staff="@col.Staff.Email"
+                         data-slot="@Model.Date.ToDateTime(slots[r]).ToString("yyyy-MM-ddTHH:mm:ss")">
+                    </div>
+                }
+            }
+
+            @for (int c = 0; c < Model.Columns.Count; c++)
+            {
+                var col = Model.Columns[c];
+
+                @foreach (var i in col.Items)
+                {
+                    var span = Math.Max(1, i.Service.DurationMinutes / Model.SlotMinutes);
+                    var row = RowOf(i.SlotStart);
+                    var movable = !AppointmentWorkflow.IsTerminal(i.ItemStatus);
+
+                    <div class="board-item @i.ItemStatus.ToString().ToLower() @(movable ? "" : "fixed")"
+                         style="grid-row: @row / span @span; grid-column: @(c + 2);"
+                         draggable="@(movable ? "true" : "false")"
+                         data-item="@i.Id"
+                         title="@i.Pet.Name — @i.Service.Name with @i.Appointment.Member.Name (@i.Appointment.BookingRef)">
+                        <b>@i.Pet.Name</b>
+                        <span class="sub">@i.Service.Name</span>
+                        <span class="sub">@i.SlotStart.ToString("h:mm") &ndash; @i.SlotEnd.ToString("h:mm tt")</span>
+                        <a asp-action="Detail" asp-route-id="@i.AppointmentId" class="board-open">Open</a>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+}
+
+@section foot {
+    <script src="~/js/schedule-board.js" asp-append-version="true"></script>
+}
