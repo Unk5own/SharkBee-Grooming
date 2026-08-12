@@ -21,6 +21,7 @@ builder.Services.AddSqlServer<DB>($@"
     MultipleActiveResultSets=True;
 ");
 builder.Services.AddScoped<Helper>();
+builder.Services.AddScoped<StripeService>();
 builder.Services.AddAuthentication().AddCookie(options =>
 {
     options.LoginPath = "/Account/Login";
