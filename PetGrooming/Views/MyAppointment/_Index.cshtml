@@ -1,0 +1,112 @@
+@{
+    var upcoming = (List<Appointment>)ViewBag.Upcoming;
+    var past = (List<Appointment>)ViewBag.Past;
+}
+
+@functions {
+    string Money(decimal d) => "RM " + d.ToString("N2");
+}
+
+@if (upcoming.Count > 0)
+{
+    <h2>Upcoming</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>When</th>
+                <th>Pets and Services</th>
+                <th>Reference</th>
+                <th>Status</th>
+                <th class="num">Total</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in upcoming)
+            {
+                var first = a.Items.OrderBy(i => i.SlotStart).First();
+                <tr>
+                    <td>
+                        <b>@first.SlotStart.ToString("ddd, d MMM yyyy")</b>
+                        <span class="sub">@first.SlotStart.ToString("h:mm tt")</span>
+                    </td>
+                    <td>
+                        @foreach (var i in a.Items.OrderBy(i => i.SlotStart))
+                        {
+                            <div>
+                                @i.Pet.Name &middot; @i.Service.Name
+                                <span class="sub">with @i.Staff.Name</span>
+                            </div>
+                        }
+                    </td>
+                    <td>@a.BookingRef</td>
+                    <td><span class="pill @a.Status.ToString().ToLower()">@a.Status</span></td>
+                    <td class="num">@Money(a.Total)</td>
+                    <td>
+                        <a asp-action="Detail" asp-route-id="@a.Id" class="btn ghost">View</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else if (ViewBag.Filter as string != "past")
+{
+    <h2>Upcoming</h2>
+    <p class="empty">You have no upcoming appointments.</p>
+}
+
+@if (past.Count > 0)
+{
+    <h2>History</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>When</th>
+                <th>Pets and Services</th>
+                <th>Reference</th>
+                <th>Status</th>
+                <th class="num">Total</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in past)
+            {
+                var first = a.Items.OrderBy(i => i.SlotStart).First();
+                <tr>
+                    <td>
+                        @first.SlotStart.ToString("d MMM yyyy")
+                        <span class="sub">@first.SlotStart.ToString("h:mm tt")</span>
+                    </td>
+                    <td>
+                        @foreach (var i in a.Items.OrderBy(i => i.SlotStart))
+                        {
+                            <div>
+                                @i.Pet.Name &middot; @i.Service.Name
+                                <span class="sub">with @i.Staff.Name</span>
+                            </div>
+                        }
+                    </td>
+                    <td>@a.BookingRef</td>
+                    <td>
+                        <span class="pill @a.Status.ToString().ToLower()">@a.Status</span>
+                        @if (a.RefundAmount > 0)
+                        {
+                            <span class="sub">Refunded @Money(a.RefundAmount)</span>
+                        }
+                    </td>
+                    <td class="num">@Money(a.Total)</td>
+                    <td>
+                        <a asp-action="Detail" asp-route-id="@a.Id" class="btn ghost">View</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else if (ViewBag.Filter as string != "upcoming")
+{
+    <h2>History</h2>
+    <p class="empty">Nothing here yet.</p>
+}

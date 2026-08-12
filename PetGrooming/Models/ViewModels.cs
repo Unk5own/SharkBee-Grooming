@@ -141,12 +141,16 @@ public class CheckoutVM
 public class CancelVM
 {
     public int AppointmentId { get; set; }
-    public string BookingRef { get; set; }
+
+    // Display-only, and never posted back -- so they must be nullable, otherwise
+    // MVC infers them as required and refuses every cancellation. Everything here
+    // except AppointmentId and Reason is recalculated from the database on POST.
+    public string? BookingRef { get; set; }
     public DateTime EarliestSlot { get; set; }
 
     public decimal PaidAmount { get; set; }
     public decimal RefundAmount { get; set; }
-    public string PolicyExplanation { get; set; }
+    public string? PolicyExplanation { get; set; }
 
     [Required]
     [StringLength(200)]

@@ -1,0 +1,51 @@
+@model CancelVM
+
+<div class="card">
+    <p>
+        You are about to cancel <b>@Model.BookingRef</b>, due
+        <b>@Model.EarliestSlot.ToString("dddd, d MMMM yyyy 'at' h:mm tt")</b>.
+    </p>
+</div>
+
+<div class="card refundbox">
+    <h2 style="margin-top:0">Refund</h2>
+
+    <div class="totals" style="margin-left:0">
+        <div><span>Paid so far</span> <span>RM @Model.PaidAmount.ToString("N2")</span></div>
+        <div class="grand">
+            <span>Refund due</span>
+            <span>RM @Model.RefundAmount.ToString("N2")</span>
+        </div>
+    </div>
+
+    <p class="sub">@Model.PolicyExplanation</p>
+
+    <details>
+        <summary>Our cancellation policy</summary>
+        <ul>
+            <li>More than @RefundPolicy.FullRefundHours hours before your appointment &mdash; full refund.</li>
+            <li>Between @RefundPolicy.HalfRefundHours and @RefundPolicy.FullRefundHours hours before &mdash; half refund.</li>
+            <li>Less than @RefundPolicy.HalfRefundHours hours before &mdash; the deposit is kept.</li>
+        </ul>
+    </details>
+</div>
+
+<form asp-action="Cancel" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="AppointmentId">
+
+    <div asp-validation-summary="All" class="validation-summary-errors"></div>
+
+    <div class="card">
+        <label asp-for="Reason"></label>
+        <input type="text" asp-for="Reason" placeholder="Let us know why, so we can improve">
+        <span asp-validation-for="Reason" class="field-validation-error"></span>
+    </div>
+
+    <button type="submit" class="btn">Confirm Cancellation</button>
+    <a asp-action="Detail" asp-route-id="@Model.AppointmentId" class="btn ghost">Keep my booking</a>
+</form>
+
+@section foot {
+    <partial name="_ValidationScriptsPartial" />
+}
