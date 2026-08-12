@@ -269,3 +269,59 @@ textarea, input[type=text], select {
 .pill.cancelled, .pill.noshow { background: var(--bad-bg); color: var(--bad); }
 
 .empty { color: var(--muted); font-style: italic; }
+
+/* --- staff operations ---------------------------------------------------- */
+
+.filters {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filters > div { flex: 1 1 170px; }
+.filters input[type=date], .filters input[type=text], .filters select { width: 100%; }
+.filter-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+
+input[type=date] {
+    padding: 9px 11px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font: inherit;
+    background: #fff;
+}
+
+.daynav {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    font-size: 14px;
+}
+
+.statusstrip {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.detailhead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.actions input[type=text] { flex: 1 1 240px; width: auto; }
+
+main > h2 { font-size: 18px; margin: 26px 0 12px; }

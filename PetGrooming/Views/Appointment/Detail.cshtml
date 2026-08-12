@@ -1,0 +1,166 @@
+@model Appointment
+@{
+    var next = AppointmentWorkflow.NextStatuses(Model.Status);
+    var outstanding = Model.Payments.FirstOrDefault(p => p.Status == PaymentStatus.Pending);
+}
+
+<div class="card">
+    <div class="detailhead">
+        <div>
+            <b>@Model.BookingRef</b>
+            <span class="pill @Model.Status.ToString().ToLower()">@Model.Status</span>
+            <span class="sub">
+                Booked @Model.CreatedAt.ToString("d MMM yyyy, h:mm tt")
+                by @Model.Member.Name (@Model.MemberEmail)
+                @if (!string.IsNullOrWhiteSpace(Model.Member.Phone))
+                {
+                    <text>&middot; @Model.Member.Phone</text>
+                }
+            </span>
+        </div>
+        <div class="num">
+            <b>RM @Model.Total.ToString("N2")</b>
+            <span class="sub">Deposit RM @Model.DepositAmount.ToString("N2")</span>
+        </div>
+    </div>
+</div>
+
+@if (next.Length > 0)
+{
+    <div class="card">
+        <label>Move this booking on</label>
+        <form asp-action="UpdateStatus" method="post" class="actions">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id">
+            <input type="text" name="remark" placeholder="Optional note for the audit trail">
+
+            @foreach (var s in next)
+            {
+                <button type="submit" name="to" value="@s"
+                        class="btn @(s is AppointmentStatus.Cancelled or AppointmentStatus.NoShow ? "ghost" : "")">
+                    @AppointmentWorkflow.ActionLabel(s)
+                </button>
+            }
+        </form>
+    </div>
+}
+else
+{
+    <div class="card">
+        <p class="empty">This booking is @Model.Status and can no longer be changed.</p>
+    </div>
+}
+
+<h2>Pets and Services</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Time</th>
+            <th>Pet</th>
+            <th>Service</th>
+            <th>Groomer</th>
+            <th class="num">Price</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var i in Model.Items.OrderBy(i => i.SlotStart))
+        {
+            <tr>
+                <td>
+                    @i.SlotStart.ToString("h:mm tt")
+                    <span class="sub">to @i.SlotEnd.ToString("h:mm tt")</span>
+                </td>
+                <td>
+                    @i.Pet.Name
+                    <span class="sub">@i.Pet.Breed &middot; @i.Pet.WeightKg.ToString("N1") kg</span>
+                    @if (!string.IsNullOrWhiteSpace(i.Pet.Allergies) && i.Pet.Allergies != "None")
+                    {
+                        <span class="pill cancelled">Allergy: @i.Pet.Allergies</span>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(i.Pet.Notes))
+                    {
+                        <span class="sub">@i.Pet.Notes</span>
+                    }
+                </td>
+                <td>@i.Service.Name</td>
+                <td>@i.Staff.Name</td>
+                <td class="num">RM @i.UnitPrice.ToString("N2")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (!string.IsNullOrWhiteSpace(Model.Notes))
+{
+    <div class="card">
+        <b>Owner notes</b>
+        <p>@Model.Notes</p>
+    </div>
+}
+
+<h2>Payment</h2>
+<div class="card">
+    @if (!Model.Payments.Any())
+    {
+        <p class="empty">No payment recorded.</p>
+    }
+    else
+    {
+        foreach (var p in Model.Payments)
+        {
+            <p>
+                @p.Method &middot;
+                <span class="pill @p.Status.ToString().ToLower()">@p.Status</span>
+                &middot; RM @p.Amount.ToString("N2")
+                @if (p.PaidAt != null)
+                {
+                    <span class="sub">Paid @p.PaidAt.Value.ToString("d MMM yyyy, h:mm tt")</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(p.ProviderRef))
+                {
+                    <span class="sub">Ref @p.ProviderRef</span>
+                }
+            </p>
+        }
+    }
+
+    @if (outstanding != null)
+    {
+        <form asp-action="SettlePayment" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id">
+            <button type="submit" class="btn">
+                Record RM @outstanding.Amount.ToString("N2") received at counter
+            </button>
+        </form>
+    }
+</div>
+
+<h2>Audit Trail</h2>
+<table>
+    <thead>
+        <tr>
+            <th>When</th>
+            <th>Change</th>
+            <th>By</th>
+            <th>Remark</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var h in Model.StatusHistories.OrderBy(h => h.ChangedAt))
+        {
+            <tr>
+                <td>@h.ChangedAt.ToString("d MMM yyyy, h:mm tt")</td>
+                <td>
+                    <span class="pill @h.FromStatus.ToString().ToLower()">@h.FromStatus</span>
+                    &rarr;
+                    <span class="pill @h.ToStatus.ToString().ToLower()">@h.ToStatus</span>
+                </td>
+                <td>@h.ChangedByEmail</td>
+                <td>@h.Remark</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<p><a asp-action="Index" class="btn ghost">Back to list</a></p>
