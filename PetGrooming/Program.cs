@@ -2,6 +2,10 @@ global using PetGrooming.Models;
 global using PetGrooming;
 global using Microsoft.EntityFrameworkCore;
 
+// QuestPDF Community licence: free for individuals and for companies under
+// USD 1M revenue, which covers this project. Must be set before any PDF is made.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 // NOTE: The practicals omit "Initial Catalog". Without it, EF cannot create the

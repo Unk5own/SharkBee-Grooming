@@ -125,9 +125,11 @@ public class CheckoutVM
     public decimal Total { get; set; }
     public decimal DepositAmount { get; set; }
 
+    // Nullable on purpose: a non-nullable string is inferred as required by MVC,
+    // which would stop anyone booking without typing a note.
     [StringLength(500)]
     [DisplayName("Special Requests")]
-    public string Notes { get; set; }
+    public string? Notes { get; set; }
 
     [DisplayName("Payment Method")]
     public PaymentMethod Method { get; set; }
@@ -156,21 +158,22 @@ public class ReportCardVM
 {
     public int AppointmentItemId { get; set; }
 
+    // All optional, so nullable -- see the note on CheckoutVM.Notes.
     [StringLength(1000)]
     [DisplayName("Groomer Notes")]
-    public string GroomerNotes { get; set; }
+    public string? GroomerNotes { get; set; }
 
     [StringLength(100)]
     [DisplayName("Coat Condition")]
-    public string CoatCondition { get; set; }
+    public string? CoatCondition { get; set; }
 
     [StringLength(200)]
     [DisplayName("Behaviour Notes")]
-    public string BehaviourNotes { get; set; }
+    public string? BehaviourNotes { get; set; }
 
     [StringLength(200)]
     [DisplayName("Recommendation for Next Visit")]
-    public string NextVisitRecommendation { get; set; }
+    public string? NextVisitRecommendation { get; set; }
 
     [DisplayName("Before Photos")]
     public List<IFormFile> BeforePhotos { get; set; } = [];
@@ -187,7 +190,7 @@ public class ReviewVM
     public int Rating { get; set; }
 
     [StringLength(500)]
-    public string Comment { get; set; }
+    public string? Comment { get; set; }
 }
 
 // One groomer's column on the daily schedule board.
