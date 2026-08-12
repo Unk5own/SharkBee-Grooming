@@ -1,0 +1,97 @@
+@model Appointment
+
+<div class="card">
+    <div class="detailhead">
+        <div>
+            <b>@Model.BookingRef</b>
+            <span class="pill @Model.Status.ToString().ToLower()">@Model.Status</span>
+            <span class="sub">Booked @Model.CreatedAt.ToString("d MMM yyyy, h:mm tt")</span>
+        </div>
+        <div class="num">
+            <b>RM @Model.Total.ToString("N2")</b>
+            @if (Model.RefundAmount > 0)
+            {
+                <span class="sub">Refunded RM @Model.RefundAmount.ToString("N2")</span>
+            }
+        </div>
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>When</th>
+            <th>Pet</th>
+            <th>Service</th>
+            <th>Groomer</th>
+            <th class="num">Price</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var i in Model.Items.OrderBy(i => i.SlotStart))
+        {
+            <tr>
+                <td>
+                    @i.SlotStart.ToString("ddd, d MMM yyyy")
+                    <span class="sub">@i.SlotStart.ToString("h:mm tt") &ndash; @i.SlotEnd.ToString("h:mm tt")</span>
+                </td>
+                <td>@i.Pet.Name<span class="sub">@i.Pet.Breed</span></td>
+                <td>@i.Service.Name<span class="sub">@i.Service.DurationMinutes min</span></td>
+                <td>@i.Staff.Name</td>
+                <td class="num">RM @i.UnitPrice.ToString("N2")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (!string.IsNullOrWhiteSpace(Model.Notes))
+{
+    <div class="card">
+        <b>Your notes</b>
+        <p>@Model.Notes</p>
+    </div>
+}
+
+<div class="card">
+    <b>Payment</b>
+    @if (!Model.Payments.Any())
+    {
+        <p class="empty">No payment recorded.</p>
+    }
+    else
+    {
+        foreach (var p in Model.Payments)
+        {
+            <p>
+                @p.Method &middot;
+                <span class="pill @p.Status.ToString().ToLower()">@p.Status</span>
+                &middot; RM @p.Amount.ToString("N2")
+                @if (p.Status == PaymentStatus.Pending)
+                {
+                    <span class="sub">Payable at the counter on the day.</span>
+                }
+            </p>
+        }
+    }
+</div>
+
+@if (Model.Status == AppointmentStatus.Cancelled)
+{
+    <div class="card">
+        <b>Cancelled</b>
+        <p class="sub">
+            @Model.CancelledAt?.ToString("d MMM yyyy, h:mm tt") &middot; @Model.CancelReason
+        </p>
+    </div>
+}
+
+<p>
+    <a asp-action="Receipt" asp-route-id="@Model.Id" class="btn">Download E-Receipt (PDF)</a>
+
+    @if (ViewBag.CanCancel == true)
+    {
+        <a asp-action="Cancel" asp-route-id="@Model.Id" class="btn ghost">Cancel this booking</a>
+    }
+
+    <a asp-action="Index" class="btn ghost">Back</a>
+</p>

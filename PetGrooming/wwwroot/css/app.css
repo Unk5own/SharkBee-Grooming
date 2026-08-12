@@ -441,3 +441,13 @@ main > h2 { font-size: 18px; margin: 26px 0 12px; }
 .boardmsg.error { background: var(--bad-bg); color: var(--bad); }
 
 .daynav .spacer { flex: 1; }
+
+.daynav a.active {
+    color: var(--brand);
+    font-weight: 700;
+    border-bottom: 2px solid var(--brand);
+}
+
+.refundbox details { margin-top: 10px; font-size: 13px; }
+.refundbox summary { cursor: pointer; color: var(--brand); font-weight: 600; }
+.refundbox ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); }
