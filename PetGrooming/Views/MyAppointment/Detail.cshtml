@@ -52,6 +52,62 @@
     </div>
 }
 
+@foreach (var i in Model.Items.Where(i => i.Report != null).OrderBy(i => i.SlotStart))
+{
+    var report = i.Report!;
+    var before = report.Photos.Where(p => p.PhotoType == PhotoType.Before).ToList();
+    var after = report.Photos.Where(p => p.PhotoType == PhotoType.After).ToList();
+
+    <h2>Report Card &mdash; @i.Pet.Name</h2>
+    <div class="card reportcard">
+        <dl>
+            @if (!string.IsNullOrWhiteSpace(report.CoatCondition))
+            {
+                <dt>Coat condition</dt>
+                <dd>@report.CoatCondition</dd>
+            }
+            @if (!string.IsNullOrWhiteSpace(report.BehaviourNotes))
+            {
+                <dt>Behaviour</dt>
+                <dd>@report.BehaviourNotes</dd>
+            }
+            @if (!string.IsNullOrWhiteSpace(report.GroomerNotes))
+            {
+                <dt>Groomer notes</dt>
+                <dd>@report.GroomerNotes</dd>
+            }
+            @if (!string.IsNullOrWhiteSpace(report.NextVisitRecommendation))
+            {
+                <dt>Next visit</dt>
+                <dd>@report.NextVisitRecommendation</dd>
+            }
+        </dl>
+        <p class="sub">Written by @i.Staff.Name on @report.CreatedAt.ToString("d MMM yyyy")</p>
+
+        @if (before.Count > 0 && after.Count > 0)
+        {
+            <div class="ba" data-before="/photos/reports/@before[0].PhotoURL"
+                            data-after="/photos/reports/@after[0].PhotoURL"></div>
+        }
+        else if (report.Photos.Any())
+        {
+            <div class="gallery">
+                @foreach (var p in report.Photos)
+                {
+                    <figure>
+                        <img src="/photos/reports/@p.PhotoURL" alt="@p.PhotoType photo of @i.Pet.Name">
+                        <figcaption>
+                            <span class="pill @(p.PhotoType == PhotoType.Before ? "pending" : "completed")">
+                                @p.PhotoType
+                            </span>
+                        </figcaption>
+                    </figure>
+                }
+            </div>
+        }
+    </div>
+}
+
 <div class="card">
     <b>Payment</b>
     @if (!Model.Payments.Any())
@@ -95,3 +151,7 @@
 
     <a asp-action="Index" class="btn ghost">Back</a>
 </p>
+
+@section foot {
+    <script src="~/js/before-after-slider.js" asp-append-version="true"></script>
+}

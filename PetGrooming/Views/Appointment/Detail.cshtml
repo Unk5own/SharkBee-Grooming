@@ -84,7 +84,17 @@ else
                 </td>
                 <td>@i.Service.Name</td>
                 <td>@i.Staff.Name</td>
-                <td class="num">RM @i.UnitPrice.ToString("N2")</td>
+                <td class="num">
+                    RM @i.UnitPrice.ToString("N2")
+                    @if (i.ItemStatus is AppointmentStatus.InProgress or AppointmentStatus.Completed)
+                    {
+                        <span class="sub">
+                            <a asp-action="ReportCard" asp-route-itemId="@i.Id">
+                                @(i.Report == null ? "Write report card" : "Edit report card")
+                            </a>
+                        </span>
+                    }
+                </td>
             </tr>
         }
     </tbody>

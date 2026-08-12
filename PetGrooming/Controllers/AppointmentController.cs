@@ -7,7 +7,7 @@ namespace PetGrooming.Controllers;
 // Day-to-day salon operations: who is coming in today, checking pets in, moving
 // bookings through grooming, and recording no-shows.
 [Authorize(Roles = "Staff,Admin")]
-public class AppointmentController(DB db, IConfiguration cf) : Controller
+public class AppointmentController(DB db, Helper hp, IConfiguration cf) : Controller
 {
     // GET: Appointment/Index
     public IActionResult Index(DateOnly? date, AppointmentStatus? status,
@@ -308,6 +308,152 @@ public class AppointmentController(DB db, IConfiguration cf) : Controller
         return RedirectToAction("Detail", new { id });
     }
 
+    // GET: Appointment/ReportCard
+    // The groomer's write-up of what they did, with before and after photos that
+    // the owner sees afterwards in their history.
+    public IActionResult ReportCard(int itemId)
+    {
+        var item = LoadItem(itemId);
+
+        if (item == null || !CanTouch(item.Appointment))
+        {
+            TempData["Info"] = "Booking not found.";
+            return RedirectToAction("Index");
+        }
+
+        if (item.ItemStatus is not (AppointmentStatus.InProgress or AppointmentStatus.Completed))
+        {
+            TempData["Info"] = "A report card can only be written once grooming has started.";
+            return RedirectToAction("Detail", new { id = item.AppointmentId });
+        }
+
+        var report = item.Report;
+
+        ViewBag.Title = $"Report Card for {item.Pet.Name}";
+        ViewBag.Item = item;
+        ViewBag.Photos = report?.Photos.OrderBy(p => p.PhotoType).ThenBy(p => p.SortOrder).ToList()
+                      ?? [];
+
+        return View(new ReportCardVM
+        {
+            AppointmentItemId = item.Id,
+            PetName = item.Pet.Name,
+            ServiceName = item.Service.Name,
+            GroomerNotes = report?.GroomerNotes,
+            CoatCondition = report?.CoatCondition,
+            BehaviourNotes = report?.BehaviourNotes,
+            NextVisitRecommendation = report?.NextVisitRecommendation,
+        });
+    }
+
+    // POST: Appointment/ReportCard
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ReportCard(ReportCardVM vm)
+    {
+        var item = LoadItem(vm.AppointmentItemId);
+
+        if (item == null || !CanTouch(item.Appointment))
+        {
+            TempData["Info"] = "Booking not found.";
+            return RedirectToAction("Index");
+        }
+
+        if (item.ItemStatus is not (AppointmentStatus.InProgress or AppointmentStatus.Completed))
+        {
+            TempData["Info"] = "A report card can only be written once grooming has started.";
+            return RedirectToAction("Detail", new { id = item.AppointmentId });
+        }
+
+        // Reject bad uploads before writing anything, so a rejected photo does not
+        // leave a half-saved report behind.
+        var incoming = (vm.BeforePhotos ?? []).Select(f => (PhotoType.Before, f))
+              .Concat((vm.AfterPhotos ?? []).Select(f => (PhotoType.After, f)))
+              .Where(x => x.f != null && x.f.Length > 0)
+              .ToList();
+
+        foreach (var (_, file) in incoming)
+        {
+            var error = hp.ValidatePhoto(file);
+            if (error != "") ModelState.AddModelError("", $"{file.FileName}: {error}");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            ViewBag.Title = $"Report Card for {item.Pet.Name}";
+            ViewBag.Item = item;
+            ViewBag.Photos = item.Report?.Photos.OrderBy(p => p.PhotoType).ToList() ?? [];
+            return View(vm);
+        }
+
+        var report = item.Report;
+
+        if (report == null)
+        {
+            report = new GroomingReport
+            {
+                AppointmentItemId = item.Id,
+                CreatedAt = DateTime.Now,
+            };
+            db.GroomingReports.Add(report);
+        }
+
+        report.GroomerNotes = vm.GroomerNotes ?? "";
+        report.CoatCondition = vm.CoatCondition ?? "";
+        report.BehaviourNotes = vm.BehaviourNotes ?? "";
+        report.NextVisitRecommendation = vm.NextVisitRecommendation ?? "";
+
+        // Save the report first so a new one has an Id for its photos to hang off.
+        db.SaveChanges();
+
+        foreach (var (type, file) in incoming)
+        {
+            db.GroomingReportPhotos.Add(new GroomingReportPhoto
+            {
+                GroomingReportId = report.Id,
+                PhotoURL = hp.SavePhoto(file, "photos/reports", 800, 600),
+                PhotoType = type,
+                SortOrder = 0,
+            });
+        }
+
+        db.SaveChanges();
+
+        TempData["Info"] = incoming.Count > 0
+            ? $"Report card saved with {incoming.Count} photo(s)."
+            : "Report card saved.";
+
+        return RedirectToAction("ReportCard", new { itemId = item.Id });
+    }
+
+    // POST: Appointment/DeleteReportPhoto
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult DeleteReportPhoto(int photoId)
+    {
+        var photo = db.GroomingReportPhotos
+                      .Include(p => p.GroomingReport)
+                          .ThenInclude(r => r.AppointmentItem)
+                              .ThenInclude(i => i.Appointment)
+                                  .ThenInclude(a => a.Items)
+                      .FirstOrDefault(p => p.Id == photoId);
+
+        if (photo == null || !CanTouch(photo.GroomingReport.AppointmentItem.Appointment))
+        {
+            TempData["Info"] = "Photo not found.";
+            return RedirectToAction("Index");
+        }
+
+        var itemId = photo.GroomingReport.AppointmentItemId;
+
+        hp.DeletePhoto(photo.PhotoURL, "photos/reports");
+        db.GroomingReportPhotos.Remove(photo);
+        db.SaveChanges();
+
+        TempData["Info"] = "Photo removed.";
+        return RedirectToAction("ReportCard", new { itemId });
+    }
+
     // POST: Appointment/SettlePayment
     // Records that an outstanding counter payment was taken at the desk.
     [HttpPost]
@@ -391,6 +537,17 @@ public class AppointmentController(DB db, IConfiguration cf) : Controller
         return appointment.Items.Any(i => i.StaffEmail == User.Identity!.Name);
     }
 
+    private AppointmentItem? LoadItem(int itemId)
+    {
+        return db.AppointmentItems
+                 .Include(i => i.Pet)
+                 .Include(i => i.Service)
+                 .Include(i => i.Staff)
+                 .Include(i => i.Appointment).ThenInclude(a => a.Items)
+                 .Include(i => i.Report).ThenInclude(r => r.Photos)
+                 .FirstOrDefault(i => i.Id == itemId);
+    }
+
     private Appointment? Load(int id)
     {
         return db.Appointments
@@ -398,6 +555,7 @@ public class AppointmentController(DB db, IConfiguration cf) : Controller
                  .Include(a => a.Items).ThenInclude(i => i.Pet)
                  .Include(a => a.Items).ThenInclude(i => i.Service)
                  .Include(a => a.Items).ThenInclude(i => i.Staff)
+                 .Include(a => a.Items).ThenInclude(i => i.Report)
                  .Include(a => a.Payments)
                  .Include(a => a.StatusHistories)
                  .FirstOrDefault(a => a.Id == id);
