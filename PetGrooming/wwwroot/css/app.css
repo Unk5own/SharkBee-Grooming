@@ -575,3 +575,41 @@ input[type=file] { font: inherit; font-size: 13px; }
 .reportcard dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 8px 0 0; }
 .reportcard dt { color: var(--muted); font-size: 13px; }
 .reportcard dd { margin: 0; }
+
+/* --- reporting dashboard ------------------------------------------------- */
+
+.kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.kpi {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--brand);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.kpi-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.kpi-value { font-size: 22px; font-weight: 700; }
+
+.charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.charts .card { display: flex; flex-direction: column; }
+.charts canvas { margin-top: 12px; max-width: 100%; }
