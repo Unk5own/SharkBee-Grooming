@@ -22,6 +22,7 @@ builder.Services.AddSqlServer<DB>($@"
 ");
 builder.Services.AddScoped<Helper>();
 builder.Services.AddScoped<StripeService>();
+builder.Services.AddScoped<WaitlistService>();
 builder.Services.AddAuthentication().AddCookie(options =>
 {
     options.LoginPath = "/Account/Login";

@@ -204,6 +204,28 @@ public class ReviewVM
     public string? Comment { get; set; }
 }
 
+public class WaitlistVM
+{
+    [DisplayName("Pet")]
+    public int PetId { get; set; }
+
+    // Required on purpose -- you cannot wait for nothing in particular.
+    [Required]
+    [DisplayName("Service")]
+    public string ServiceId { get; set; }
+
+    [DisplayName("Preferred groomer")]
+    public string? PreferredStaffEmail { get; set; }
+
+    [DataType(DataType.Date)]
+    [DisplayName("Earliest date")]
+    public DateOnly DesiredFrom { get; set; }
+
+    [DataType(DataType.Date)]
+    [DisplayName("Latest date")]
+    public DateOnly DesiredTo { get; set; }
+}
+
 // One groomer's column on the daily schedule board.
 public class BoardColumnVM
 {

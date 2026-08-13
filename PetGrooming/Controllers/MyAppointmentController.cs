@@ -6,7 +6,8 @@ namespace PetGrooming.Controllers;
 // What the member sees after booking: what is coming up, what has happened, and
 // the ability to cancel under the published refund policy.
 [Authorize(Roles = "Member")]
-public class MyAppointmentController(DB db, Helper hp, StripeService stripe) : Controller
+public class MyAppointmentController(DB db, Helper hp, StripeService stripe,
+                                     WaitlistService waitlist) : Controller
 {
     // GET: MyAppointment/Index
     public IActionResult Index(string? filter)
@@ -171,9 +172,13 @@ public class MyAppointmentController(DB db, Helper hp, StripeService stripe) : C
 
         db.SaveChanges();
 
-        TempData["Info"] = refund > 0
+        // The slot is free again, so offer it to whoever has been waiting longest.
+        var offered = waitlist.NotifyForFreedSlots(m);
+
+        TempData["Info"] = (refund > 0
             ? $"Booking {m.BookingRef} cancelled. RM {refund:N2} will be refunded.{note}"
-            : $"Booking {m.BookingRef} cancelled. {vm.PolicyExplanation}";
+            : $"Booking {m.BookingRef} cancelled. {vm.PolicyExplanation}")
+            + (offered > 0 ? $" {offered} member(s) on the waitlist have been notified." : "");
 
         return RedirectToAction("Index");
     }
