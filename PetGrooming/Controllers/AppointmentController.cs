@@ -7,7 +7,8 @@ namespace PetGrooming.Controllers;
 // Day-to-day salon operations: who is coming in today, checking pets in, moving
 // bookings through grooming, and recording no-shows.
 [Authorize(Roles = "Staff,Admin")]
-public class AppointmentController(DB db, Helper hp, IConfiguration cf) : Controller
+public class AppointmentController(DB db, Helper hp, WaitlistService waitlist,
+                                   IConfiguration cf) : Controller
 {
     // GET: Appointment/Index
     public IActionResult Index(DateOnly? date, AppointmentStatus? status,
@@ -304,7 +305,14 @@ public class AppointmentController(DB db, Helper hp, IConfiguration cf) : Contro
 
         db.SaveChanges();
 
-        TempData["Info"] = $"{m.BookingRef} is now {to}.";
+        // A staff cancellation frees the slot just as a member cancellation does.
+        var offered = to == AppointmentStatus.Cancelled
+                    ? waitlist.NotifyForFreedSlots(m)
+                    : 0;
+
+        TempData["Info"] = $"{m.BookingRef} is now {to}."
+            + (offered > 0 ? $" {offered} member(s) on the waitlist have been notified." : "");
+
         return RedirectToAction("Detail", new { id });
     }
 
