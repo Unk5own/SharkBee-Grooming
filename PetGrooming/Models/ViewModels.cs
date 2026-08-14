@@ -204,6 +204,15 @@ public class ReviewVM
     public string? Comment { get; set; }
 }
 
+// A groomer's standing, built from member reviews.
+public class GroomerRatingVM
+{
+    public string? Name { get; set; }
+    public string? Specialization { get; set; }
+    public decimal Average { get; set; }
+    public int Count { get; set; }
+}
+
 public class WaitlistVM
 {
     [DisplayName("Pet")]

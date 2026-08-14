@@ -9,6 +9,37 @@
     </p>
 </div>
 
+@if (ViewBag.Groomers != null)
+{
+    <h2>Our Groomers</h2>
+    <div class="groomers">
+        @foreach (GroomerRatingVM g in ViewBag.Groomers)
+        {
+            <div class="card groomer">
+                <b>@g.Name</b>
+                <span class="sub">@g.Specialization</span>
+                @if (g.Count > 0)
+                {
+                    <div class="rating">
+                        <span class="starsread">
+                            @for (int n = 1; n <= 5; n++)
+                            {
+                                <text>@(n <= Math.Round(g.Average) ? "★" : "☆")</text>
+                            }
+                        </span>
+                        <b>@g.Average.ToString("0.0")</b>
+                        <span class="sub">@g.Count review@(g.Count == 1 ? "" : "s")</span>
+                    </div>
+                }
+                else
+                {
+                    <span class="sub">No reviews yet</span>
+                }
+            </div>
+        }
+    </div>
+}
+
 @if (ViewBag.Services != null)
 {
     <h2>Our Services</h2>

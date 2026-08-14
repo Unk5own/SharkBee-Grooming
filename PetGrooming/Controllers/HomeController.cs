@@ -14,6 +14,23 @@ public class HomeController(DB db) : Controller
                              .Where(s => s.Active)
                              .OrderBy(s => s.CategoryId).ThenBy(s => s.Price)
                              .ToList();
+
+        // Average rating per groomer, so member reviews feed back into who a
+        // customer chooses when booking.
+        ViewBag.Groomers = db.Staffs
+                             .Where(s => s.Active)
+                             .Select(s => new GroomerRatingVM
+                             {
+                                 Name = s.Name,
+                                 Specialization = s.Specialization,
+                                 Average = s.Reviews.Any()
+                                         ? Math.Round(s.Reviews.Average(r => (decimal)r.Rating), 1)
+                                         : 0m,
+                                 Count = s.Reviews.Count(),
+                             })
+                             .OrderByDescending(g => g.Average)
+                             .ToList();
+
         return View();
     }
 

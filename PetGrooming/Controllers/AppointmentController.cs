@@ -564,6 +564,7 @@ public class AppointmentController(DB db, Helper hp, WaitlistService waitlist,
                  .Include(a => a.Items).ThenInclude(i => i.Service)
                  .Include(a => a.Items).ThenInclude(i => i.Staff)
                  .Include(a => a.Items).ThenInclude(i => i.Report)
+                 .Include(a => a.Items).ThenInclude(i => i.Review)
                  .Include(a => a.Payments)
                  .Include(a => a.StatusHistories)
                  .FirstOrDefault(a => a.Id == id);
