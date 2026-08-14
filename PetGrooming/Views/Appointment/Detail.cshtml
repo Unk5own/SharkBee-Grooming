@@ -83,7 +83,21 @@ else
                     }
                 </td>
                 <td>@i.Service.Name</td>
-                <td>@i.Staff.Name</td>
+                <td>
+                    @i.Staff.Name
+                    @if (i.Review != null)
+                    {
+                        <span class="sub">
+                            <span class="starsread" title="@i.Review.Rating out of 5">
+                                @for (int n = 1; n <= 5; n++)
+                                {
+                                    <text>@(n <= i.Review.Rating ? "★" : "☆")</text>
+                                }
+                            </span>
+                            @i.Review.Comment
+                        </span>
+                    }
+                </td>
                 <td class="num">
                     RM @i.UnitPrice.ToString("N2")
                     @if (i.ItemStatus is AppointmentStatus.InProgress or AppointmentStatus.Completed)

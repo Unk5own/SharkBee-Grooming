@@ -37,7 +37,28 @@
                 </td>
                 <td>@i.Pet.Name<span class="sub">@i.Pet.Breed</span></td>
                 <td>@i.Service.Name<span class="sub">@i.Service.DurationMinutes min</span></td>
-                <td>@i.Staff.Name</td>
+                <td>
+                    @i.Staff.Name
+                    @if (i.ItemStatus == AppointmentStatus.Completed)
+                    {
+                        <span class="sub">
+                            @if (i.Review == null)
+                            {
+                                <a asp-action="Review" asp-route-itemId="@i.Id">Leave a review</a>
+                            }
+                            else
+                            {
+                                <span class="starsread" title="@i.Review.Rating out of 5">
+                                    @for (int n = 1; n <= 5; n++)
+                                    {
+                                        <text>@(n <= i.Review.Rating ? "★" : "☆")</text>
+                                    }
+                                </span>
+                                <a asp-action="Review" asp-route-itemId="@i.Id">Edit</a>
+                            }
+                        </span>
+                    }
+                </td>
                 <td class="num">RM @i.UnitPrice.ToString("N2")</td>
             </tr>
         }

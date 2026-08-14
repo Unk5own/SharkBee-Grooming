@@ -183,6 +183,102 @@ public class MyAppointmentController(DB db, Helper hp, StripeService stripe,
         return RedirectToAction("Index");
     }
 
+    // GET: MyAppointment/Review
+    // A member may rate a groomer once the grooming is actually finished.
+    public IActionResult Review(int itemId)
+    {
+        var item = LoadItem(itemId);
+
+        if (item == null)
+        {
+            TempData["Info"] = "Booking not found.";
+            return RedirectToAction("Index");
+        }
+
+        if (item.ItemStatus != AppointmentStatus.Completed)
+        {
+            TempData["Info"] = "You can leave a review once the grooming is completed.";
+            return RedirectToAction("Detail", new { id = item.AppointmentId });
+        }
+
+        ViewBag.Title = $"Review {item.Staff.Name}";
+        ViewBag.Item = item;
+
+        return View(new ReviewVM
+        {
+            AppointmentItemId = item.Id,
+            Rating = item.Review?.Rating ?? 5,
+            Comment = item.Review?.Comment,
+        });
+    }
+
+    // POST: MyAppointment/Review
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Review(ReviewVM vm)
+    {
+        var item = LoadItem(vm.AppointmentItemId);
+
+        if (item == null)
+        {
+            TempData["Info"] = "Booking not found.";
+            return RedirectToAction("Index");
+        }
+
+        // Checked again on POST, not just when rendering the form.
+        if (item.ItemStatus != AppointmentStatus.Completed)
+        {
+            TempData["Info"] = "You can leave a review once the grooming is completed.";
+            return RedirectToAction("Detail", new { id = item.AppointmentId });
+        }
+
+        if (vm.Rating is < 1 or > 5)
+        {
+            ModelState.AddModelError("Rating", "Please choose between one and five stars.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            ViewBag.Title = $"Review {item.Staff.Name}";
+            ViewBag.Item = item;
+            return View(vm);
+        }
+
+        var review = item.Review;
+
+        if (review == null)
+        {
+            review = new Review
+            {
+                AppointmentItemId = item.Id,
+                MemberEmail = User.Identity!.Name!,
+                StaffEmail = item.StaffEmail,
+                CreatedAt = DateTime.Now,
+            };
+            db.Reviews.Add(review);
+        }
+
+        review.Rating = vm.Rating;
+        review.Comment = vm.Comment ?? "";
+        db.SaveChanges();
+
+        TempData["Info"] = $"Thank you, your review of {item.Staff.Name} has been saved.";
+        return RedirectToAction("Detail", new { id = item.AppointmentId });
+    }
+
+    // Scoped to the signed-in member.
+    private AppointmentItem? LoadItem(int itemId)
+    {
+        return db.AppointmentItems
+                 .Include(i => i.Pet)
+                 .Include(i => i.Service)
+                 .Include(i => i.Staff)
+                 .Include(i => i.Review)
+                 .Include(i => i.Appointment)
+                 .FirstOrDefault(i => i.Id == itemId
+                                   && i.Appointment.MemberEmail == User.Identity!.Name);
+    }
+
     // GET: MyAppointment/Receipt
     public IActionResult Receipt(int id)
     {
@@ -239,6 +335,7 @@ public class MyAppointmentController(DB db, Helper hp, StripeService stripe,
                  .Include(a => a.Items).ThenInclude(i => i.Service)
                  .Include(a => a.Items).ThenInclude(i => i.Staff)
                  .Include(a => a.Items).ThenInclude(i => i.Report).ThenInclude(r => r.Photos)
+                 .Include(a => a.Items).ThenInclude(i => i.Review)
                  .Include(a => a.Payments)
                  .Include(a => a.StatusHistories)
                  .FirstOrDefault(a => a.Id == id && a.MemberEmail == User.Identity!.Name);
