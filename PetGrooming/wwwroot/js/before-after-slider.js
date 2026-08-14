@@ -16,17 +16,31 @@
         var afterSrc = box.dataset.after;
         if (!beforeSrc || !afterSrc) return;
 
+        // The AFTER shot is the base layer and the BEFORE shot is clipped over
+        // it from the left, so dragging right wipes the before away and reveals
+        // the after. That matches the Before / After labels at each edge.
         box.innerHTML =
-            '<img class="ba-img ba-before" src="' + beforeSrc + '" alt="Before grooming">' +
-            '<div class="ba-clip"><img class="ba-img" src="' + afterSrc + '" alt="After grooming"></div>' +
+            '<img class="ba-img" src="' + afterSrc + '" alt="After grooming">' +
+            '<div class="ba-clip"><img class="ba-img" src="' + beforeSrc + '" alt="Before grooming"></div>' +
             '<div class="ba-handle" role="slider" tabindex="0" aria-label="Compare before and after"' +
             ' aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"></div>' +
             '<span class="ba-tag ba-tag-l">Before</span>' +
             '<span class="ba-tag ba-tag-r">After</span>';
 
         var clip = box.querySelector('.ba-clip');
+        var clipImg = clip.querySelector('.ba-img');
         var handle = box.querySelector('.ba-handle');
         var dragging = false;
+
+        // The clipped image must stay the width of the whole box, not of the
+        // clip, or the two halves drift out of alignment as the box resizes.
+        function sizeClip() {
+            clipImg.style.width = box.clientWidth + 'px';
+        }
+
+        sizeClip();
+        window.addEventListener('resize', sizeClip);
+        if (clipImg.complete === false) clipImg.addEventListener('load', sizeClip);
 
         function setPercent(p) {
             p = Math.max(0, Math.min(100, p));

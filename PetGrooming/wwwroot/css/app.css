@@ -526,7 +526,9 @@ input[type=file] { font: inherit; font-size: 13px; }
     overflow: hidden;
 }
 
-.ba-clip .ba-img { width: 560px; max-width: none; }
+/* Width is set from the box's real pixel width by the script, so the clipped
+   half always lines up with the layer underneath it. */
+.ba-clip .ba-img { max-width: none; }
 
 .ba-handle {
     position: absolute;
@@ -612,7 +614,17 @@ input[type=file] { font: inherit; font-size: 13px; }
 }
 
 .charts .card { display: flex; flex-direction: column; }
-.charts canvas { margin-top: 12px; max-width: 100%; }
+
+/* Chart.js sizes a responsive canvas to its parent. Without a parent of fixed
+   height it re-measures the box it just grew, and the chart expands on every
+   frame -- so each canvas gets its own positioned, fixed-height box. */
+.chartbox {
+    position: relative;
+    height: 260px;
+    margin-top: 12px;
+}
+
+.charts canvas { max-width: 100%; }
 
 /* --- reviews and ratings ------------------------------------------------- */
 
