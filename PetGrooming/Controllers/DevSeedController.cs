@@ -24,7 +24,9 @@ public class DevSeedController(DB db, Helper hp, IWebHostEnvironment en) : Contr
             return RedirectToAction("Index", "Home");
         }
 
-        hp.SignIn(user.Email, user.Role, false);
+        // Persistent so the session survives a browser restart, which is what
+        // makes scripted screenshot runs possible.
+        hp.SignIn(user.Email, user.Role, true);
 
         TempData["Info"] = $"Signed in as {user.Name} ({user.Role}).";
         return RedirectToAction("Index", "Home");

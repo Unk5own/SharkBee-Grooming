@@ -1,4 +1,4 @@
-@model DashboardVM
+﻿@model DashboardVM
 
 <div class="kpis">
     <div class="kpi">
@@ -23,25 +23,25 @@
     <div class="card">
         <b>Monthly revenue</b>
         <span class="sub">Completed appointments, last 12 months</span>
-        <canvas id="revenueChart" height="220"></canvas>
+        <div class="chartbox"><canvas id="revenueChart"></canvas></div>
     </div>
 
     <div class="card">
         <b>Most popular services</b>
         <span class="sub">By completed appointments</span>
-        <canvas id="servicesChart" height="220"></canvas>
+        <div class="chartbox"><canvas id="servicesChart"></canvas></div>
     </div>
 
     <div class="card">
         <b>Groomer utilisation</b>
         <span class="sub">Booked time against rostered time, last 30 days</span>
-        <canvas id="utilisationChart" height="220"></canvas>
+        <div class="chartbox"><canvas id="utilisationChart"></canvas></div>
     </div>
 
     <div class="card">
         <b>Busiest hours</b>
         <span class="sub">Appointments by start time</span>
-        <canvas id="hoursChart" height="220"></canvas>
+        <div class="chartbox"><canvas id="hoursChart"></canvas></div>
     </div>
 </div>
 
