@@ -190,9 +190,12 @@ public class CheckoutController(DB db, Helper hp, StripeService stripe, IConfigu
             var url = stripe.CreateCheckoutSession(
                 Load(appointment.Id)!,
                 amountDue,
+                // The id is a route segment, not a query value, so the session id
+                // has to start a fresh query string. Stripe swaps the literal
+                // {CHECKOUT_SESSION_ID} in, so it must not be URL-encoded.
                 Url.Action("PaymentSuccess", "Checkout",
                            new { id = appointment.Id }, Request.Scheme)!
-                    + "&session_id={CHECKOUT_SESSION_ID}",
+                    + "?session_id={CHECKOUT_SESSION_ID}",
                 Url.Action("PaymentCancelled", "Checkout",
                            new { id = appointment.Id }, Request.Scheme)!);
 
