@@ -1,0 +1,99 @@
+﻿@model PetGrooming.Models.SelectSlotVM
+@{
+    var service = (PetGrooming.Models.Service)ViewBag.Service;
+    ViewBag.Title = "Select Date & Time";
+}
+
+<div class="card">
+    <b>@service.Name</b> &middot; RM @service.Price.ToString("N2")
+    <span class="sub">@service.DurationMinutes minutes &middot; @service.Description</span>
+</div>
+
+<form asp-action="AddToCart" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="ServiceId" value="@service.Id">
+    <input type="hidden" id="SelectedSlotStart" name="SlotStart" value="">
+
+    <div class="card">
+        <div>
+            <label asp-for="PetId">Select Pet</label>
+            <select asp-for="PetId" asp-items="ViewBag.PetList"></select>
+        </div>
+
+        <div>
+            <label asp-for="StaffEmail">Preferred Groomer</label>
+            <select asp-for="StaffEmail" asp-items="ViewBag.StaffList" id="staffSelect">
+                <option value="">Any Groomer</option>
+            </select>
+        </div>
+
+        <div>
+            <label asp-for="Date">Booking Date</label>
+            <input type="date" asp-for="Date" id="dateSelect" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")">
+        </div>
+    </div>
+
+    <div class="card">
+        <b>Available Slots</b>
+        <div id="slotGrid" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+            <p class="sub">Select a groomer and date to load available time slots.</p>
+        </div>
+    </div>
+
+    <button type="submit" id="submitBtn" class="btn" disabled>Add to Booking Cart</button>
+    <a asp-action="Catalog" class="btn ghost">Back to Catalog</a>
+</form>
+
+@section foot {
+    <script>
+        const serviceId = "@service.Id";
+        const staffSelect = document.getElementById('staffSelect');
+        const dateSelect = document.getElementById('dateSelect');
+        const slotGrid = document.getElementById('slotGrid');
+        const slotInput = document.getElementById('SelectedSlotStart');
+        const submitBtn = document.getElementById('submitBtn');
+
+        function fetchSlots() {
+            const staff = staffSelect.value;
+            const date = dateSelect.value;
+            if (!date) return;
+
+            slotGrid.innerHTML = "<span>Loading slots...</span>";
+            submitBtn.disabled = true;
+            slotInput.value = "";
+
+            fetch(`/Booking/GetAvailableSlots?serviceId=${serviceId}&staffEmail=${staff}&date=${date}`)
+                .then(res => res.json())
+                .then(slots => {
+                    slotGrid.innerHTML = "";
+                    if (slots.length === 0) {
+                        slotGrid.innerHTML = "<p class='empty'>No slots available for this date. Try another date or groomer.</p>";
+                        return;
+                    }
+
+                    slots.forEach(s => {
+                        const btn = document.createElement('button');
+                        btn.type = "button";
+                        btn.className = s.isAvailable ? "btn ghost" : "btn ghost disabled";
+                        btn.disabled = !s.isAvailable;
+
+                        const timeStr = new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        btn.innerText = `${timeStr} (${s.staffName})`;
+
+                        btn.onclick = () => {
+                            document.querySelectorAll('#slotGrid button').forEach(b => b.classList.remove('active'));
+                            btn.classList.add('active');
+                            slotInput.value = s.startTime;
+                            submitBtn.disabled = false;
+                        };
+
+                        slotGrid.appendChild(btn);
+                    });
+                });
+        }
+
+        staffSelect.addEventListener('change', fetchSlots);
+        dateSelect.addEventListener('change', fetchSlots);
+        fetchSlots();
+    </script>
+}
