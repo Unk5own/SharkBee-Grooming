@@ -1,5 +1,11 @@
 @{
     ViewBag.Title = "Welcome to Pawfect Grooming";
+    var currentCategory = ViewBag.SelectedCategory as string;
+    var currentSort = ViewBag.SelectedPriceSort as string;
+
+    // Toggle sort order between asc and desc
+    var nextSort = currentSort == "asc" ? "desc" : "asc";
+    var sortIndicator = currentSort == "asc" ? " ▲" : (currentSort == "desc" ? " ▼" : " ↕");
 }
 
 <div class="card">
@@ -43,29 +49,78 @@
 @if (ViewBag.Services != null)
 {
     <h2>Our Services</h2>
+
+    @* Category Filter Form *@
+    <form method="get" action="/" class="card">
+        @if (!string.IsNullOrEmpty(currentSort))
+        {
+            <input type="hidden" name="priceSort" value="@currentSort" />
+        }
+        <div class="filters" style="display: flex; gap: 15px; align-items: flex-end;">
+            <div>
+                <label for="categoryId">Category</label>
+                <select name="categoryId" id="categoryId">
+                    <option value="">All Categories</option>
+                    @if (ViewBag.Categories != null)
+                    {
+                        foreach (ServiceCategory c in ViewBag.Categories)
+                        {
+                            <option value="@c.Id" selected="@(currentCategory == c.Id ? "selected" : null)">
+                                @c.Name
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div>
+                <button type="submit" class="btn">Filter</button>
+                @if (!string.IsNullOrEmpty(currentCategory) || !string.IsNullOrEmpty(currentSort))
+                {
+                    <a href="/" class="btn ghost">Reset</a>
+                }
+            </div>
+        </div>
+    </form>
+
+    @* Services Table *@
     <table>
         <thead>
             <tr>
                 <th>Service</th>
                 <th>Category</th>
                 <th class="num">Duration</th>
-                <th class="num">Price</th>
+                <th class="num">
+                    <a href="/?categoryId=@currentCategory&priceSort=@nextSort" style="color: inherit; text-decoration: underline;">
+                        Price
+                    </a>
+                </th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
             @foreach (Service s in ViewBag.Services)
             {
                 <tr>
-                    <td>@s.Name<span class="sub">@s.Description</span></td>
+                    <td>
+                        @s.Name
+                        <span class="sub">@s.Description</span>
+                    </td>
                     <td>@s.Category.Name</td>
                     <td class="num">@s.DurationMinutes min</td>
                     <td class="num">RM @s.Price.ToString("N2")</td>
+                    <td>
+                        @if (User.IsInRole("Member"))
+                        {
+                            <a asp-controller="Booking" asp-action="SelectSlot" asp-route-serviceId="@s.Id" class="btn">Book Now</a>
+                        }
+                        else if (!User.Identity!.IsAuthenticated)
+                        {
+                            <a href="/Account/Login" class="btn ghost">Login to Book</a>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
     </table>
-    <p class="sub">
-        Browsing, filtering and booking are built by Student 2. This listing is a
-        placeholder so the catalog is visible while Checkout is developed.
-    </p>
 }

@@ -1,0 +1,74 @@
+﻿@model IEnumerable<PetGrooming.Models.CheckoutLineVM>
+@{
+    ViewBag.Title = "Your Booking Cart";
+    bool hasUnavailable = Model.Any(m => m.Unavailable);
+}
+
+@if (!Model.Any())
+{
+    <p class="empty">Your booking cart is empty.</p>
+    <a asp-action="Catalog" class="btn">Browse Services</a>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>When</th>
+                <th>Pet & Service</th>
+                <th>Groomer</th>
+                <th class="num">Price</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var line in Model)
+            {
+                <tr class="@(line.Unavailable ? "disabled" : "")">
+                    <td>
+                        <b>@line.Item.SlotStart.ToString("ddd, d MMM yyyy")</b>
+                        <span class="sub">@line.Item.SlotStart.ToString("h:mm tt") &ndash; @line.SlotEnd.ToString("h:mm tt")</span>
+                        @if (line.Unavailable)
+                        {
+                            <span class="pill cancelled">Slot Taken</span>
+                        }
+                    </td>
+                    <td>
+                        <b>@line.Pet.Name</b> &middot; @line.Service.Name
+                    </td>
+                    <td>@line.Staff.Name</td>
+                    <td class="num">RM @line.Subtotal.ToString("N2")</td>
+                    <td>
+                        <form asp-action="RemoveFromCart" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="petId" value="@line.Item.PetId">
+                            <input type="hidden" name="slotStart" value="@line.Item.SlotStart.ToString("o")">
+                            <button type="submit" class="linkbtn">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="card">
+        <div class="totals">
+            <div class="grand">
+                <span>Total</span>
+                <span>RM @Model.Sum(m => m.Subtotal).ToString("N2")</span>
+            </div>
+        </div>
+    </div>
+
+    <p>
+        @if (hasUnavailable)
+        {
+            <span class="field-validation-error">Please remove unavailable items before proceeding.</span>
+        }
+        else
+        {
+            <a href="/Checkout/Index" class="btn">Proceed to Checkout</a>
+        }
+        <a asp-action="Catalog" class="btn ghost">Add More Services</a>
+    </p>
+}
