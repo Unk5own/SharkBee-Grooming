@@ -77,7 +77,7 @@ public class WaitlistService(DB db, Helper hp, ILogger<WaitlistService> log)
                         Slots are offered first come, first served, so book soon if
                         you still want it.
                     </p>
-                    <p>&mdash; Pawfect Grooming</p>",
+                    <p>&mdash; SharkBee Grooming</p>",
             };
 
             mail.To.Add(new MailAddress(entry.MemberEmail));
