@@ -29,7 +29,15 @@ builder.Services.AddAuthentication().AddCookie(options =>
     options.AccessDeniedPath = "/Account/AccessDenied";
 });
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSession();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<LoginSecurityService>();
+builder.Services.AddScoped<CaptchaService>();
 
 var app = builder.Build();
 

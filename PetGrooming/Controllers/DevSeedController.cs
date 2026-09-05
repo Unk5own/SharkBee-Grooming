@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace PetGrooming.Controllers;
 
-// DEVELOPMENT ONLY -- not part of the delivered system.
+// DEVELOPMENT ONLY -- supports team-member testing; not part of end-user navigation.
 //
 // Checkout (Student 3) consumes the session booking cart that Booking (Student 2)
 // produces. This controller fabricates that cart directly, so the checkout flow
@@ -11,8 +11,8 @@ namespace PetGrooming.Controllers;
 public class DevSeedController(DB db, Helper hp, IWebHostEnvironment en) : Controller
 {
     // GET: DevSeed/LoginAs
-    // Stands in for Student 1's Account/Login until Security is integrated.
-    public IActionResult LoginAs(string email)
+    // Development shortcut for testing different seeded roles.
+    public async Task<IActionResult> LoginAs(string email)
     {
         if (!en.IsDevelopment()) return NotFound();
 
@@ -26,18 +26,18 @@ public class DevSeedController(DB db, Helper hp, IWebHostEnvironment en) : Contr
 
         // Persistent so the session survives a browser restart, which is what
         // makes scripted screenshot runs possible.
-        hp.SignIn(user.Email, user.Role, true);
+        await hp.SignInAsync(user.Email, user.Role, true);
 
         TempData["Info"] = $"Signed in as {user.Name} ({user.Role}).";
         return RedirectToAction("Index", "Home");
     }
 
     // GET: DevSeed/Logout
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout()
     {
         if (!en.IsDevelopment()) return NotFound();
 
-        hp.SignOut();
+        await hp.SignOutAsync();
         hp.SetCart(null);
 
         TempData["Info"] = "Signed out.";

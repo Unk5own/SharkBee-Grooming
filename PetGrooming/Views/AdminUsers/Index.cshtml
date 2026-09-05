@@ -1,0 +1,63 @@
+@model IEnumerable<PetGrooming.Models.User>
+@{ ViewBag.Title = "User Management"; }
+<div class="card">
+    <h2>User Management</h2>
+    <p>Manage Admin, Staff and Member accounts.</p>
+    <form method="get" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+        <div>
+            <label>Search</label>
+            <input name="search" value="@ViewBag.Search" placeholder="Email or name" />
+        </div>
+        <div>
+            <label>Role</label>
+            <select name="role">
+                <option value="">All</option>
+                <option value="Admin" selected="@(ViewBag.Role as string == "Admin")">Admin</option>
+                <option value="Staff" selected="@(ViewBag.Role as string == "Staff")">Staff</option>
+                <option value="Member" selected="@(ViewBag.Role as string == "Member")">Member</option>
+            </select>
+        </div>
+        <label class="choice"><input type="checkbox" name="showBlocked" value="true" @(ViewBag.ShowBlocked == true ? "checked" : "") /> Show blocked</label>
+        <button class="btn" type="submit">Filter</button>
+        <a class="btn" asp-action="Create">Create User</a>
+    </form>
+</div>
+
+@if (TempData["Info"] != null)
+{
+    <div class="info">@TempData["Info"]</div>
+}
+
+<table>
+    <thead>
+        <tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+    @foreach (var user in Model)
+    {
+        <tr>
+            <td>@user.Email</td>
+            <td>@user.Name</td>
+            <td>@user.Role</td>
+            <td>@(user.Blocked ? "Blocked" : "Active")</td>
+            <td>
+                <a class="btn" asp-action="Edit" asp-route-email="@user.Email">Edit</a>
+                @if (!user.Blocked)
+                {
+                    <form asp-action="Delete" asp-route-email="@user.Email" method="post" style="display:inline">
+                        @Html.AntiForgeryToken()
+                        <button class="btn ghost" type="submit" onclick="return confirm('Block this account?')">Block</button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="Unblock" asp-route-email="@user.Email" method="post" style="display:inline">
+                        @Html.AntiForgeryToken()
+                        <button class="btn" type="submit">Unblock</button>
+                    </form>
+                }
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

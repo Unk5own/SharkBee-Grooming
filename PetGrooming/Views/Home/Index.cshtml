@@ -15,6 +15,21 @@
     </p>
 </div>
 
+<div class="card">
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <span>Welcome, @User.Identity.Name</span>
+        @if (User.IsInRole("Admin"))
+        {
+            <a class="btn" asp-controller="AdminUsers" asp-action="Index">User Management</a>
+        }
+    }
+    else
+    {
+        <a class="btn" asp-controller="Account" asp-action="Login">Login</a>
+    }
+</div>
+
 @if (ViewBag.Groomers != null)
 {
     <h2>Our Groomers</h2>
