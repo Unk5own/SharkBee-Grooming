@@ -1,25 +1,29 @@
 @model IEnumerable<PetGrooming.Models.User>
 @{ ViewBag.Title = "User Management"; }
 <div class="card">
-    <h2>User Management</h2>
     <p>Manage Admin, Staff and Member accounts.</p>
-    <form method="get" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
-        <div>
-            <label>Search</label>
-            <input name="search" value="@ViewBag.Search" placeholder="Email or name" />
+    <form method="get" class="filters">
+        <div class="field">
+            <label for="search">Search</label>
+            <input id="search" name="search" type="search" value="@ViewBag.Search" placeholder="Email or name" />
         </div>
-        <div>
-            <label>Role</label>
-            <select name="role">
-                <option value="">All</option>
+        <div class="field">
+            <label for="role">Role</label>
+            <select id="role" name="role">
+                <option value="">All roles</option>
                 <option value="Admin" selected="@(ViewBag.Role as string == "Admin")">Admin</option>
                 <option value="Staff" selected="@(ViewBag.Role as string == "Staff")">Staff</option>
                 <option value="Member" selected="@(ViewBag.Role as string == "Member")">Member</option>
             </select>
         </div>
-        <label class="choice"><input type="checkbox" name="showBlocked" value="true" @(ViewBag.ShowBlocked == true ? "checked" : "") /> Show blocked</label>
-        <button class="btn" type="submit">Filter</button>
-        <a class="btn" asp-action="Create">Create User</a>
+        <label class="check-inline">
+            <input type="checkbox" name="showBlocked" value="true" @(ViewBag.ShowBlocked == true ? "checked" : "") />
+            Show blocked
+        </label>
+        <div class="filter-actions">
+            <button class="btn" type="submit">Filter</button>
+            <a class="btn ghost" asp-action="Create">Create User</a>
+        </div>
     </form>
 </div>
 
@@ -41,19 +45,19 @@
             <td>@user.Role</td>
             <td>@(user.Blocked ? "Blocked" : "Active")</td>
             <td>
-                <a class="btn" asp-action="Edit" asp-route-email="@user.Email">Edit</a>
+                <a class="btn sm" asp-action="Edit" asp-route-email="@user.Email">Edit</a>
                 @if (!user.Blocked)
                 {
                     <form asp-action="Delete" asp-route-email="@user.Email" method="post" style="display:inline">
                         @Html.AntiForgeryToken()
-                        <button class="btn ghost" type="submit" onclick="return confirm('Block this account?')">Block</button>
+                        <button class="btn ghost sm" type="submit" onclick="return confirm('Block this account?')">Block</button>
                     </form>
                 }
                 else
                 {
                     <form asp-action="Unblock" asp-route-email="@user.Email" method="post" style="display:inline">
                         @Html.AntiForgeryToken()
-                        <button class="btn" type="submit">Unblock</button>
+                        <button class="btn sm" type="submit">Unblock</button>
                     </form>
                 }
             </td>

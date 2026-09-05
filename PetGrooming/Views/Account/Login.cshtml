@@ -1,7 +1,6 @@
 @model PetGrooming.Models.LoginVM
 @{ ViewBag.Title = "Login"; }
-<div class="card" style="max-width:520px;margin:auto;">
-    <h2>Login</h2>
+<div class="card narrow">
     <p>Admin, Groomer (Staff), and Member accounts use manual cookie authentication.</p>
     <form asp-action="Login" method="post">
         <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />

@@ -1,7 +1,6 @@
 @model PetGrooming.Models.RegisterVM
-@{ ViewBag.Title = "Register"; }
-<div class="card" style="max-width:650px;margin:auto;">
-    <h2>Create Member Account</h2>
+@{ ViewBag.Title = "Create Member Account"; }
+<div class="card narrow-wide">
     <form asp-action="Register" method="post" enctype="multipart/form-data">
         <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
 
@@ -31,7 +30,7 @@
 
         <hr />
         <h3>Or capture a webcam photo</h3>
-        <video id="camera" autoplay playsinline width="320" height="240" style="max-width:100%;background:#111;border-radius:8px;"></video>
+        <video id="camera" autoplay playsinline width="320" height="240" hidden style="max-width:100%;background:#111;border-radius:8px;"></video>
         <canvas id="snapshot" width="320" height="240" hidden></canvas>
         <div style="margin-top:8px;">
             <button class="btn ghost" type="button" id="startCamera">Start Camera</button>
@@ -65,6 +64,7 @@
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                 video.srcObject = stream;
+                video.hidden = false;
             } catch (e) {
                 alert('Camera permission was not granted. You can still upload a photo.');
             }

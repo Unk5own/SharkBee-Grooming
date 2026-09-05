@@ -1,7 +1,6 @@
 @model PetGrooming.Models.UserEditVM
 @{ ViewBag.Title = "Edit User"; }
-<div class="card" style="max-width:650px;margin:auto;">
-    <h2>Edit User</h2>
+<div class="card narrow-wide">
     <form asp-action="Edit" asp-route-email="@Model.Email" method="post">
         <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
         <label>Email</label>
