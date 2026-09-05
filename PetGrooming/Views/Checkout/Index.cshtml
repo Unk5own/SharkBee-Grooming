@@ -65,7 +65,7 @@
     <div class="card">
         <label>Payment Method</label>
 
-        <label class="choice">
+        <label class="choice stacked">
             <input type="radio" asp-for="Method" value="@PaymentMethod.Counter" checked>
             <span>
                 <b>Pay at Counter</b>
@@ -73,7 +73,7 @@
             </span>
         </label>
 
-        <label class="choice @(ViewBag.CardAvailable == true ? "" : "disabled")">
+        <label class="choice stacked @(ViewBag.CardAvailable == true ? "" : "disabled")">
             <input type="radio" asp-for="Method" value="@PaymentMethod.Stripe"
                    disabled="@(ViewBag.CardAvailable != true)">
             <span>
@@ -91,7 +91,7 @@
             </span>
         </label>
 
-        <label class="choice">
+        <label class="choice stacked">
             <input type="checkbox" asp-for="DepositOnly">
             <span>
                 <b>Pay deposit only</b>

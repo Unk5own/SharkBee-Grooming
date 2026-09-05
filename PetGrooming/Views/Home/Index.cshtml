@@ -1,38 +1,71 @@
 @{
-    ViewBag.Title = "Welcome to Pawfect Grooming";
+    Layout = "_Layout";
+    ViewBag.Title = "";
     var currentCategory = ViewBag.SelectedCategory as string;
     var currentSort = ViewBag.SelectedPriceSort as string;
 
     // Toggle sort order between asc and desc
     var nextSort = currentSort == "asc" ? "desc" : "asc";
-    var sortIndicator = currentSort == "asc" ? " ▲" : (currentSort == "desc" ? " ▼" : " ↕");
+
+    var services = ViewBag.Services as IEnumerable<Service>;
+    var cheapest = services != null && services.Any() ? services.Min(s => s.Price) : 0m;
 }
 
-<div class="card">
-    <p>
-        Professional grooming for dogs and cats &mdash; book a package, pick your
-        groomer, and choose a time that suits you.
-    </p>
-</div>
-
-<div class="card">
-    @if (User.Identity?.IsAuthenticated == true)
-    {
-        <span>Welcome, @User.Identity.Name</span>
-        @if (User.IsInRole("Admin"))
+<section class="hero">
+    <div class="hero-copy">
+        <p class="eyebrow">Dog &amp; cat grooming</p>
+        <h2>Your pet leaves happier than they arrived.</h2>
+        <p class="hero-sub">
+            Pick a service, choose the groomer you trust, and book a time that
+            actually suits you. Every visit ends with a grooming report card and
+            an e-receipt in your inbox.
+        </p>
+        <div class="hero-actions">
+            <a href="#services" class="btn">Book an appointment<span class="arw">&rarr;</span></a>
+            @if (!User.Identity!.IsAuthenticated)
+            {
+                <a href="/Account/Login" class="btn ghost">Login</a>
+            }
+            else if (User.IsInRole("Member"))
+            {
+                <a href="/MyAppointment/Index" class="btn ghost">My appointments</a>
+            }
+        </div>
+        @if (cheapest > 0)
         {
-            <a class="btn" asp-controller="AdminUsers" asp-action="Index">User Management</a>
+            <p class="hero-note">From <b>RM @cheapest.ToString("N2")</b> &middot; open Monday to Sunday &middot; 9am&ndash;7pm</p>
         }
-    }
-    else
-    {
-        <a class="btn" asp-controller="Account" asp-action="Login">Login</a>
-    }
-</div>
+    </div>
+
+    <div class="hero-media">
+        <img src="~/img/hero-dog.jpg" alt="A freshly groomed golden retriever" />
+    </div>
+</section>
+
+@* The three steps read as a sequence, so they get their own full-width row
+   rather than being stacked beside the hero copy. *@
+<ol class="steps">
+    <li>
+        <span class="step-n">1</span>
+        <b>Choose a service</b>
+        <span class="sub">Bath, full groom, spa treatment and more.</span>
+    </li>
+    <li>
+        <span class="step-n">2</span>
+        <b>Pick a groomer and time</b>
+        <span class="sub">Only genuinely free slots are shown.</span>
+    </li>
+    <li>
+        <span class="step-n">3</span>
+        <b>Pay and you're set</b>
+        <span class="sub">Card or at the counter. Deposit option available.</span>
+    </li>
+</ol>
 
 @if (ViewBag.Groomers != null)
 {
-    <h2>Our Groomers</h2>
+    <h2 class="section-title">Meet the groomers</h2>
+    <p class="section-sub">Ratings come from customers who actually completed a visit.</p>
     <div class="groomers">
         @foreach (GroomerRatingVM g in ViewBag.Groomers)
         {
@@ -61,81 +94,59 @@
     </div>
 }
 
-@if (ViewBag.Services != null)
+@if (services != null)
 {
-    <h2>Our Services</h2>
+    <h2 class="section-title" id="services">Our services</h2>
+    <p class="section-sub">Prices include the bath, blow dry and a nail trim.</p>
 
-    @* Category Filter Form *@
-    <form method="get" action="/" class="card">
-        @if (!string.IsNullOrEmpty(currentSort))
-        {
-            <input type="hidden" name="priceSort" value="@currentSort" />
-        }
-        <div class="filters" style="display: flex; gap: 15px; align-items: flex-end;">
-            <div>
-                <label for="categoryId">Category</label>
-                <select name="categoryId" id="categoryId">
-                    <option value="">All Categories</option>
-                    @if (ViewBag.Categories != null)
-                    {
-                        foreach (ServiceCategory c in ViewBag.Categories)
-                        {
-                            <option value="@c.Id" selected="@(currentCategory == c.Id ? "selected" : null)">
-                                @c.Name
-                            </option>
-                        }
-                    }
-                </select>
-            </div>
-
-            <div>
-                <button type="submit" class="btn">Filter</button>
-                @if (!string.IsNullOrEmpty(currentCategory) || !string.IsNullOrEmpty(currentSort))
-                {
-                    <a href="/" class="btn ghost">Reset</a>
-                }
-            </div>
-        </div>
-    </form>
-
-    @* Services Table *@
-    <table>
-        <thead>
-            <tr>
-                <th>Service</th>
-                <th>Category</th>
-                <th class="num">Duration</th>
-                <th class="num">
-                    <a href="/?categoryId=@currentCategory&priceSort=@nextSort" style="color: inherit; text-decoration: underline;">
-                        Price
-                    </a>
-                </th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (Service s in ViewBag.Services)
+    @* Category filter and price sort. Same querystring contract as before:
+       categoryId and priceSort are both read by HomeController.Index. *@
+    <div class="svc-toolbar">
+        <div class="chips">
+            <a class="chip @(string.IsNullOrEmpty(currentCategory) ? "on" : "")"
+               href="/?priceSort=@currentSort">All</a>
+            @if (ViewBag.Categories != null)
             {
-                <tr>
-                    <td>
-                        @s.Name
-                        <span class="sub">@s.Description</span>
-                    </td>
-                    <td>@s.Category.Name</td>
-                    <td class="num">@s.DurationMinutes min</td>
-                    <td class="num">RM @s.Price.ToString("N2")</td>
-                    <td>
-                        @if (User.IsInRole("Member"))
-                        {
-                            <a asp-controller="Booking" asp-action="SelectSlot" asp-route-serviceId="@s.Id" class="btn">Book Now</a>
-                        }
-                        else if (!User.Identity!.IsAuthenticated)
-                        {
-                            <a href="/Account/Login" class="btn ghost">Login to Book</a>
-                        }
-                    </td>
-                </tr>
+                foreach (ServiceCategory c in ViewBag.Categories)
+                {
+                    <a class="chip @(currentCategory == c.Id ? "on" : "")"
+                       href="/?categoryId=@c.Id&priceSort=@currentSort">@c.Name</a>
+                }
             }
-        </tbody>
-    </table>
+        </div>
+        <a class="sortlink" href="/?categoryId=@currentCategory&priceSort=@nextSort">
+            Price @(currentSort == "asc" ? "▲" : currentSort == "desc" ? "▼" : "↕")
+        </a>
+    </div>
+
+    <div class="svc-grid">
+        @foreach (Service s in services)
+        {
+            <article class="card svc">
+                <div class="svc-head">
+                    <b>@s.Name</b>
+                    <span class="pricetag">RM @s.Price.ToString("N2")</span>
+                </div>
+                <span class="sub svc-desc">@s.Description</span>
+                <div class="svc-meta">
+                    <span class="pill">@s.Category.Name</span>
+                    <span class="sub">@s.DurationMinutes min</span>
+                </div>
+                @if (User.IsInRole("Member"))
+                {
+                    <a asp-controller="Booking" asp-action="SelectSlot" asp-route-serviceId="@s.Id"
+                       class="btn svc-btn">Book now<span class="arw">&rarr;</span></a>
+                }
+                else if (!User.Identity!.IsAuthenticated)
+                {
+                    <a href="/Account/Login" class="btn ghost svc-btn">Login to book</a>
+                }
+            </article>
+        }
+    </div>
+
+    @if (!services.Any())
+    {
+        <p class="empty">No services in this category yet.</p>
+    }
 }

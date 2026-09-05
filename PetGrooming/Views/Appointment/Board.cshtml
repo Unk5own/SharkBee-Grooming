@@ -18,10 +18,21 @@
         <span class="spacer"></span>
         <a asp-action="Index" asp-route-date="@Model.Date.ToString("yyyy-MM-dd")">List view</a>
     </div>
+    @{
+        var boardItems = Model.Columns.SelectMany(c => c.Items).ToList();
+        var movableCount = boardItems.Count(i => !AppointmentWorkflow.IsTerminal(i.ItemStatus));
+    }
     <p class="sub">
         Drag a booking onto another time or groomer to reschedule it.
         Moves outside a groomer's shift, onto leave, or over an existing booking are refused.
     </p>
+    @if (boardItems.Count > 0 && movableCount == 0)
+    {
+        <p class="sub note-locked">
+            Every booking on this day is already completed or cancelled, so none of
+            them can be moved. Pick a later day to try rescheduling.
+        </p>
+    }
 </div>
 
 @Html.AntiForgeryToken()

@@ -9,14 +9,16 @@
     if (typeof Chart === 'undefined') return;
 
     // One palette for the whole dashboard so the charts read as a set.
-    var INK = '#2c2420';
-    var MUTED = '#7a6a60';
-    var LINE = '#e6ddd6';
-    var BRAND = '#b5622f';
-    var SERIES = ['#b5622f', '#2f7d52', '#8a6100', '#5b6ea8', '#9c5673',
-                  '#4f8a8b', '#a8763e', '#6b7f3f'];
+    var INK = '#16262e';
+    var MUTED = '#5a7280';
+    var LINE = '#dae4e8';
+    var BRAND = '#0e7490';
+    // Teal through honey, the two ends of the SharkBee palette, with enough
+    // lightness separation to stay distinguishable in the doughnut.
+    var SERIES = ['#0e7490', '#e0a422', '#2f7d52', '#4a6fa5', '#9c5673',
+                  '#43a2a8', '#b3762a', '#6b7f3f'];
 
-    Chart.defaults.font.family = '"Segoe UI", Roboto, system-ui, sans-serif';
+    Chart.defaults.font.family = '"Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif';
     Chart.defaults.color = MUTED;
 
     var money = function (v) { return 'RM ' + Number(v).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
@@ -87,7 +89,7 @@
                 datasets: [{
                     data: d.popularServices.values,
                     backgroundColor: SERIES,
-                    borderColor: '#fffdfb',
+                    borderColor: '#ffffff',
                     borderWidth: 2
                 }]
             },

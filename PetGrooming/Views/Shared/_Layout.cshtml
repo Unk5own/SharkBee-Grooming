@@ -1,11 +1,22 @@
-@inject IWebHostEnvironment en
+@{
+    var pageTitle = ViewBag.Title as string;
+
+    // Highlight whichever section the current page belongs to. Appointments and
+    // the Schedule Board share the Appointment controller, so the action has to
+    // be part of the test or both light up at once.
+    var hereC = ViewContext.RouteData.Values["controller"] as string ?? "";
+    var hereA = ViewContext.RouteData.Values["action"] as string ?? "";
+    Func<string, string> on = c => string.Equals(hereC, c, StringComparison.OrdinalIgnoreCase) ? "on" : "";
+    var onBoard = string.Equals(hereC, "Appointment", StringComparison.OrdinalIgnoreCase)
+               && string.Equals(hereA, "Board", StringComparison.OrdinalIgnoreCase);
+}
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@ViewBag.Title &middot; Pawfect Grooming</title>
+    <title>@(string.IsNullOrWhiteSpace(pageTitle) ? "SharkBee Grooming" : pageTitle + " · SharkBee Grooming")</title>
     <link rel="stylesheet" href="/css/app.css" asp-append-version="true">
     @RenderSection("head", false)
 </head>
@@ -15,75 +26,60 @@
         <div class="info">@Html.Raw(TempData["Info"])</div>
     }
 
-    <header>
-        <h1><a href="/">Pawfect Grooming</a></h1>
+    <header class="topbar">
+        <a class="brand" href="/">SharkBee Grooming</a>
 
-        @if (User.Identity!.IsAuthenticated)
-        {
-            <div class="who">
+        <nav class="mainnav">
+            <a href="/" class="@on("Home")">Home</a>
+
+            @if (User.IsInRole("Member"))
+            {
+                <a href="/Pet/Index" class="@on("Pet")">My Pets</a>
+                <a href="/Checkout/Index" class="@on("Checkout")">Checkout</a>
+                <a href="/MyAppointment/Index" class="@on("MyAppointment")">My Appointments</a>
+                <a href="/Waitlist/Index" class="@on("Waitlist")">Waitlist</a>
+            }
+
+            @if (User.IsInRole("Staff") || User.IsInRole("Admin"))
+            {
+                <a href="/Appointment/Index" class="@(on("Appointment") == "on" && !onBoard ? "on" : "")">Appointments</a>
+                <a href="/Appointment/Board" class="@(onBoard ? "on" : "")">Schedule Board</a>
+            }
+
+            @if (User.IsInRole("Admin"))
+            {
+                <a href="/Admin/Users" class="@on("AdminUsers")">Users</a>
+                <a href="/Report/Dashboard" class="@on("Report")">Reports</a>
+            }
+        </nav>
+
+        <div class="topbar-end">
+            @if (User.Identity!.IsAuthenticated)
+            {
                 <span class="role">
                     @(User.IsInRole("Admin") ? "Admin" : User.IsInRole("Staff") ? "Groomer" : "Member")
                 </span>
-                @User.Identity.Name
-            </div>
-        }
+                <span class="who">@User.Identity.Name</span>
+                <a class="btn ghost sm" href="/Account/Logout">Logout</a>
+            }
+            else
+            {
+                <a class="btn sm" href="/Account/Login">Login</a>
+            }
+        </div>
     </header>
 
-    <nav>
-        <a href="/">Home</a>
-
-        @if (User.IsInRole("Member"))
-        {
-            <a href="/Pet/Index">My Pets</a>
-            <a href="/Checkout/Index">Checkout</a>
-            <a href="/MyAppointment/Index">My Appointments</a>
-            <a href="/Waitlist/Index">Waitlist</a>
-        }
-
-        @if (User.IsInRole("Staff") || User.IsInRole("Admin"))
-        {
-            <a href="/Appointment/Index">Appointments</a>
-            <a href="/Appointment/Board">Schedule Board</a>
-        }
-
-        @if (User.IsInRole("Admin"))
-        {
-            <a href="/Report/Dashboard">Reports</a>
-        }
-
-        <div class="spacer"></div>
-
-        @if (User.Identity.IsAuthenticated)
-        {
-            <a href="/Account/Logout">Logout</a>
-        }
-        else
-        {
-            <a href="/Account/Login">Login</a>
-        }
-    </nav>
-
-    @if (en.IsDevelopment())
-    {
-        <div class="devbar">
-            <b>DEV</b>
-            <a href="/DevSeed/LoginAs?email=chloe@gmail.com">as Member</a>
-            <a href="/DevSeed/LoginAs?email=aisyah@pawfect.com">as Groomer</a>
-            <a href="/DevSeed/LoginAs?email=admin@pawfect.com">as Admin</a>
-            <a href="/DevSeed/Logout">Sign out</a>
-            <a href="/DevSeed/FakeCart">Fake cart</a>
-            <a href="/DevSeed/ShowCart">Show cart</a>
-            <span>&mdash; temporary, removed once Security and Booking are integrated</span>
-        </div>
-    }
-
     <main>
-        <h1>@ViewBag.Title</h1>
+        @* A page with no title -- the landing page -- leads with its own hero instead. *@
+        @if (!string.IsNullOrWhiteSpace(pageTitle))
+        {
+            <h1>@pageTitle</h1>
+        }
         @RenderBody()
     </main>
 
     <footer>
-        Pawfect Grooming &middot; BMIT2023 Assignment &middot; &copy; @DateTime.Today.Year
+        SharkBee Grooming &middot; BMIT2023 Assignment &middot; &copy; @DateTime.Today.Year
     </footer>
 
     <script src="/lib/jquery/dist/jquery.min.js"></script>

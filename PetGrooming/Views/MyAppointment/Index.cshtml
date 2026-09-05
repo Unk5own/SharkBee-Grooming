@@ -2,7 +2,7 @@
     var filter = ViewBag.Filter as string;
 }
 
-<div class="card">
+<div class="toolbar">
     <div class="daynav" id="tabs">
         <a asp-action="Index" class="@(filter == null ? "active" : "")">All</a>
         <a asp-action="Index" asp-route-filter="upcoming" class="@(filter == "upcoming" ? "active" : "")">Upcoming only</a>
