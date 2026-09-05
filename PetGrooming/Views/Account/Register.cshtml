@@ -33,8 +33,10 @@
         <video id="camera" autoplay playsinline width="320" height="240" hidden style="max-width:100%;background:#111;border-radius:8px;"></video>
         <canvas id="snapshot" width="320" height="240" hidden></canvas>
         <div style="margin-top:8px;">
-            <button class="btn ghost" type="button" id="startCamera">Start Camera</button>
-            <button class="btn" type="button" id="takePhoto">Capture</button>
+            @* Start Camera is the first step, so it carries the emphasis;
+               Capture cannot do anything until the stream is running. *@
+            <button class="btn" type="button" id="startCamera">Start Camera</button>
+            <button class="btn ghost" type="button" id="takePhoto">Capture</button>
         </div>
         <img id="preview" alt="Webcam preview" style="display:none;width:160px;height:160px;object-fit:cover;border-radius:50%;margin-top:10px;" />
         <input asp-for="WebcamPhoto" type="hidden" id="WebcamPhoto" />
