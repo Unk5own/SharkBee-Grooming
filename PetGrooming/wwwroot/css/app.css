@@ -1333,3 +1333,18 @@ input[type=file]:hover::file-selector-button { background: var(--brand-dark); }
     font-weight: 700;
     border-bottom: none;
 }
+
+/* --- administrator overrides on an appointment --------------------------- */
+
+.admin-tools .actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.admin-tools .actions .sub { flex: 1 1 220px; }
+.admin-tools .actions select { width: auto; min-width: 180px; }
+.admin-tools .actions input[type=text] { flex: 1 1 240px; width: auto; }
+.admin-tools > .sub { display: block; margin-top: 2px; }

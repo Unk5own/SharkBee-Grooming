@@ -49,6 +49,19 @@ public static class AppointmentWorkflow
         return Allowed.TryGetValue(from, out var next) ? next : [];
     }
 
+    // An administrator may reopen a booking the normal flow treats as finished --
+    // a cancellation entered by mistake, or a no-show the member disputes. The
+    // only target is Confirmed: it goes back on the schedule and is worked from
+    // there like any other booking.
+    public const AppointmentStatus ReopenTarget = AppointmentStatus.Confirmed;
+
+    public static bool CanAdminReopen(AppointmentStatus from)
+    {
+        return from is AppointmentStatus.Cancelled
+                    or AppointmentStatus.NoShow
+                    or AppointmentStatus.Completed;
+    }
+
     public static bool IsTerminal(AppointmentStatus status)
     {
         return NextStatuses(status).Length == 0;

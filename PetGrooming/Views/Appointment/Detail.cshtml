@@ -24,6 +24,11 @@
     </div>
 </div>
 
+@{
+    var isAdmin = User.IsInRole("Admin");
+    var groomers = ViewBag.Groomers as List<Staff> ?? [];
+}
+
 @if (next.Length > 0)
 {
     <div class="card">
@@ -47,6 +52,49 @@ else
 {
     <div class="card">
         <p class="empty">This booking is @Model.Status and can no longer be changed.</p>
+    </div>
+}
+
+@* Administrator overrides. The normal workflow treats a cancellation as final,
+   which is right for a groomer but not for the person who has to fix a mistake. *@
+@if (isAdmin)
+{
+    <div class="card admin-tools">
+        <label>Administrator</label>
+
+        @if (AppointmentWorkflow.CanAdminReopen(Model.Status))
+        {
+            <form asp-action="Reopen" method="post" class="actions">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id">
+                <input type="text" name="remark" placeholder="Why is this being reopened?">
+                <button class="btn" type="submit">Reopen as Confirmed</button>
+            </form>
+            <p class="sub">
+                Puts @Model.BookingRef back on the schedule. Refused if the time has
+                since been booked by somebody else.
+            </p>
+        }
+        else
+        {
+            @foreach (var i in Model.Items.OrderBy(i => i.SlotStart))
+            {
+                <form asp-action="Reassign" method="post" class="actions">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id">
+                    <input type="hidden" name="itemId" value="@i.Id">
+                    <span class="sub">@i.Pet.Name &middot; @i.Service.Name @i.SlotStart.ToString("h:mm tt")</span>
+                    <select name="staffEmail">
+                        @foreach (var g in groomers)
+                        {
+                            <option value="@g.Email" selected="@(g.Email == i.StaffEmail)">@g.Name</option>
+                        }
+                    </select>
+                    <button class="btn ghost" type="submit">Reassign</button>
+                </form>
+            }
+            <p class="sub">Moves a line to another groomer at the same time. Use the board to change the time.</p>
+        }
     </div>
 }
 
