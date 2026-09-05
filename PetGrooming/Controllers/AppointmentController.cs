@@ -141,39 +141,12 @@ public class AppointmentController(DB db, Helper hp, WaitlistService waitlist,
             return Json(new { ok = false, error = $"A {item.ItemStatus} booking cannot be moved." });
         }
 
-        var target = db.Staffs.FirstOrDefault(s => s.Email == staffEmail && s.Active);
-
-        if (target == null)
-        {
-            return Json(new { ok = false, error = "That groomer is not available." });
-        }
-
         var slotEnd = slotStart.AddMinutes(item.Service.DurationMinutes);
-        var day = DateOnly.FromDateTime(slotStart);
+        var refusal = CheckPlacement(staffEmail, slotStart, slotEnd, out var target);
 
-        var shift = db.StaffSchedules
-                      .FirstOrDefault(s => s.StaffEmail == staffEmail && s.Day == day.DayOfWeek);
-
-        if (shift == null)
+        if (refusal != null)
         {
-            return Json(new { ok = false, error = $"{target.Name} does not work on {day.DayOfWeek}." });
-        }
-
-        if (TimeOnly.FromDateTime(slotStart) < shift.StartTime ||
-            TimeOnly.FromDateTime(slotEnd) > shift.EndTime)
-        {
-            return Json(new
-            {
-                ok = false,
-                error = $"That runs outside {target.Name}'s shift " +
-                        $"({shift.StartTime:h:mm tt} to {shift.EndTime:h:mm tt})."
-            });
-        }
-
-        if (db.StaffTimeOffs.Any(t => t.StaffEmail == staffEmail
-                                   && day >= t.StartDate && day <= t.EndDate))
-        {
-            return Json(new { ok = false, error = $"{target.Name} is on leave that day." });
+            return Json(new { ok = false, error = refusal });
         }
 
         using var tx = db.Database.BeginTransaction();
@@ -184,16 +157,10 @@ public class AppointmentController(DB db, Helper hp, WaitlistService waitlist,
             return Json(new { ok = false, error = "That slot is busy right now. Try again." });
         }
 
-        var clash = db.AppointmentItems.Any(i =>
-            i.Id != itemId &&
-            i.StaffEmail == staffEmail &&
-            i.ItemStatus != AppointmentStatus.Cancelled &&
-            i.SlotStart < slotEnd && slotStart < i.SlotEnd);
-
-        if (clash)
+        if (HasClash(staffEmail, slotStart, slotEnd, [itemId]))
         {
             tx.Rollback();
-            return Json(new { ok = false, error = $"{target.Name} already has a booking then." });
+            return Json(new { ok = false, error = $"{target!.Name} already has a booking then." });
         }
 
         var wasStaff = item.StaffEmail;
@@ -213,7 +180,7 @@ public class AppointmentController(DB db, Helper hp, WaitlistService waitlist,
             ChangedAt = DateTime.Now,
             ChangedByEmail = User.Identity!.Name!,
             Remark = $"Rescheduled from {wasStart:d MMM h:mm tt} to {slotStart:d MMM h:mm tt}"
-                   + (wasStaff == staffEmail ? "" : $", reassigned to {target.Name}"),
+                   + (wasStaff == staffEmail ? "" : $", reassigned to {target!.Name}"),
         });
 
         db.SaveChanges();
@@ -222,7 +189,7 @@ public class AppointmentController(DB db, Helper hp, WaitlistService waitlist,
         return Json(new
         {
             ok = true,
-            message = $"Moved to {slotStart:h:mm tt} with {target.Name}.",
+            message = $"Moved to {slotStart:h:mm tt} with {target!.Name}.",
             slotEnd = slotEnd.ToString("o"),
         });
     }
@@ -245,6 +212,7 @@ public class AppointmentController(DB db, Helper hp, WaitlistService waitlist,
         }
 
         ViewBag.Title = $"Appointment {m.BookingRef}";
+        ViewBag.Groomers = db.Staffs.Where(s => s.Active).OrderBy(s => s.Name).ToList();
         return View(m);
     }
 
@@ -313,6 +281,150 @@ public class AppointmentController(DB db, Helper hp, WaitlistService waitlist,
         TempData["Info"] = $"{m.BookingRef} is now {to}."
             + (offered > 0 ? $" {offered} member(s) on the waitlist have been notified." : "");
 
+        return RedirectToAction("Detail", new { id });
+    }
+
+    // POST: Appointment/Reopen
+    // Administrator override. A cancellation or no-show entered by mistake can be
+    // put back on the schedule as Confirmed. The slot is re-checked first, because
+    // releasing it may have let somebody else book that time.
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    [ValidateAntiForgeryToken]
+    public IActionResult Reopen(int id, string? remark)
+    {
+        var m = Load(id);
+
+        if (m == null)
+        {
+            TempData["Info"] = "Appointment not found.";
+            return RedirectToAction("Index");
+        }
+
+        if (!AppointmentWorkflow.CanAdminReopen(m.Status))
+        {
+            TempData["Info"] = $"A {m.Status} booking cannot be reopened.";
+            return RedirectToAction("Detail", new { id });
+        }
+
+        var ownIds = m.Items.Select(i => i.Id).ToList();
+
+        foreach (var item in m.Items)
+        {
+            if (HasClash(item.StaffEmail, item.SlotStart, item.SlotEnd, ownIds))
+            {
+                TempData["Info"] = $"That time was taken while the booking was {m.Status}. "
+                                 + $"Move {item.Pet.Name}'s {item.Service.Name} first.";
+                return RedirectToAction("Detail", new { id });
+            }
+        }
+
+        var from = m.Status;
+        var to = AppointmentWorkflow.ReopenTarget;
+
+        m.Status = to;
+        m.CancelledAt = null;
+        m.CancelReason = "";
+
+        foreach (var item in m.Items)
+        {
+            item.ItemStatus = to;
+        }
+
+        db.AppointmentStatusHistories.Add(new AppointmentStatusHistory
+        {
+            AppointmentId = m.Id,
+            FromStatus = from,
+            ToStatus = to,
+            ChangedAt = DateTime.Now,
+            ChangedByEmail = User.Identity!.Name!,
+            Remark = string.IsNullOrWhiteSpace(remark)
+                   ? $"Reopened from {from} by an administrator"
+                   : $"Reopened from {from} by an administrator: {remark}",
+        });
+
+        db.SaveChanges();
+
+        // The roster can change while a booking sits cancelled, so say so rather
+        // than silently putting work back on a groomer who has been deactivated.
+        var idle = m.Items.Select(i => i.Staff)
+                          .Where(st => st != null && !st.Active)
+                          .Select(st => st!.Name)
+                          .Distinct()
+                          .ToList();
+
+        TempData["Info"] = $"{m.BookingRef} is now {to}."
+            + (idle.Count > 0
+                ? $" {string.Join(" and ", idle)} is no longer active, so reassign this booking."
+                : "");
+
+        return RedirectToAction("Detail", new { id });
+    }
+
+    // POST: Appointment/Reassign
+    // Administrator override. Moves one line to a different groomer at the same
+    // time -- cover for somebody calling in sick. The board handles moves in
+    // time; this exists because a booking is usually reassigned from its detail
+    // page, and because a cancelled booking is not on the board at all.
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    [ValidateAntiForgeryToken]
+    public IActionResult Reassign(int id, int itemId, string staffEmail)
+    {
+        var m = Load(id);
+
+        if (m == null)
+        {
+            TempData["Info"] = "Appointment not found.";
+            return RedirectToAction("Index");
+        }
+
+        var item = m.Items.FirstOrDefault(i => i.Id == itemId);
+
+        if (item == null)
+        {
+            TempData["Info"] = "That line is not part of this booking.";
+            return RedirectToAction("Detail", new { id });
+        }
+
+        if (AppointmentWorkflow.IsTerminal(item.ItemStatus))
+        {
+            TempData["Info"] = $"A {item.ItemStatus} line cannot be reassigned. "
+                             + "Reopen the booking first.";
+            return RedirectToAction("Detail", new { id });
+        }
+
+        var refusal = CheckPlacement(staffEmail, item.SlotStart, item.SlotEnd, out var target);
+
+        if (refusal != null)
+        {
+            TempData["Info"] = refusal;
+            return RedirectToAction("Detail", new { id });
+        }
+
+        if (HasClash(staffEmail, item.SlotStart, item.SlotEnd, [item.Id]))
+        {
+            TempData["Info"] = $"{target!.Name} already has a booking at that time.";
+            return RedirectToAction("Detail", new { id });
+        }
+
+        var wasName = item.Staff?.Name ?? item.StaffEmail;
+        item.StaffEmail = staffEmail;
+
+        db.AppointmentStatusHistories.Add(new AppointmentStatusHistory
+        {
+            AppointmentId = m.Id,
+            FromStatus = item.ItemStatus,
+            ToStatus = item.ItemStatus,
+            ChangedAt = DateTime.Now,
+            ChangedByEmail = User.Identity!.Name!,
+            Remark = $"{item.Pet.Name}'s {item.Service.Name} reassigned "
+                   + $"from {wasName} to {target!.Name} by an administrator",
+        });
+
+        db.SaveChanges();
+
+        TempData["Info"] = $"{item.Pet.Name}'s {item.Service.Name} is now with {target.Name}.";
         return RedirectToAction("Detail", new { id });
     }
 
@@ -538,6 +650,59 @@ public class AppointmentController(DB db, Helper hp, WaitlistService waitlist,
     }
 
     // A groomer may only act on bookings assigned to them. Admins are unrestricted.
+    // Shared placement rules for putting a booking on a groomer's column: the
+    // groomer must be active, rostered that day, not on leave, and the slot must
+    // sit inside their shift. Returns null when the placement is allowed,
+    // otherwise the reason to show. Used by the board and by admin reassignment
+    // so the two cannot drift apart.
+    private string? CheckPlacement(string staffEmail, DateTime slotStart, DateTime slotEnd,
+                                   out Staff? target)
+    {
+        target = db.Staffs.FirstOrDefault(s => s.Email == staffEmail && s.Active);
+
+        if (target == null)
+        {
+            return "That groomer is not available.";
+        }
+
+        var day = DateOnly.FromDateTime(slotStart);
+
+        var shift = db.StaffSchedules
+                      .FirstOrDefault(s => s.StaffEmail == staffEmail && s.Day == day.DayOfWeek);
+
+        if (shift == null)
+        {
+            return $"{target.Name} does not work on {day.DayOfWeek}.";
+        }
+
+        if (TimeOnly.FromDateTime(slotStart) < shift.StartTime ||
+            TimeOnly.FromDateTime(slotEnd) > shift.EndTime)
+        {
+            return $"That runs outside {target.Name}'s shift " +
+                   $"({shift.StartTime:h:mm tt} to {shift.EndTime:h:mm tt}).";
+        }
+
+        if (db.StaffTimeOffs.Any(t => t.StaffEmail == staffEmail
+                                   && day >= t.StartDate && day <= t.EndDate))
+        {
+            return $"{target.Name} is on leave that day.";
+        }
+
+        return null;
+    }
+
+    // True when the groomer already has live work overlapping the slot. The
+    // booking's own lines are excluded, so moving it onto itself is not a clash.
+    private bool HasClash(string staffEmail, DateTime slotStart, DateTime slotEnd,
+                          List<int> excludeItemIds)
+    {
+        return db.AppointmentItems.Any(i =>
+            !excludeItemIds.Contains(i.Id) &&
+            i.StaffEmail == staffEmail &&
+            i.ItemStatus != AppointmentStatus.Cancelled &&
+            i.SlotStart < slotEnd && slotStart < i.SlotEnd);
+    }
+
     private bool CanTouch(Appointment appointment)
     {
         if (User.IsInRole("Admin")) return true;
