@@ -141,6 +141,10 @@ public class User
     // so that appointment history stays intact.
     public bool Blocked { get; set; }
 
+    // New registrations are unverified until the optional email link is used.
+    // Existing/administrator-created accounts are treated as verified.
+    public bool EmailVerified { get; set; } = true;
+
     public string Role => GetType().Name;
 }
 

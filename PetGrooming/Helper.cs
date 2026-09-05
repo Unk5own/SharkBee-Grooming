@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using QuestPDF.Fluent;
 using SixLabors.ImageSharp;
@@ -7,6 +6,7 @@ using SixLabors.ImageSharp.Processing;
 using System.Net;
 using System.Net.Mail;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
 namespace PetGrooming;
@@ -77,20 +77,43 @@ public class Helper(IWebHostEnvironment en,
     // Security Helper Functions
     // ------------------------------------------------------------------------
 
-    private readonly PasswordHasher<object> ph = new();
+    // Password hashing is implemented directly with PBKDF2. This keeps the project
+    // independent of ASP.NET Core Identity, as required by the assignment.
+    private const int PasswordIterations = 120_000;
+    private const int SaltSize = 16;
+    private const int HashSize = 32;
 
     public string HashPassword(string password)
     {
-        return ph.HashPassword(0, password);
+        byte[] salt = RandomNumberGenerator.GetBytes(SaltSize);
+        byte[] hash = Rfc2898DeriveBytes.Pbkdf2(
+            password, salt, PasswordIterations, HashAlgorithmName.SHA256, HashSize);
+
+        return $"PBKDF2-SHA256${PasswordIterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
     }
 
-    public bool VerifyPassword(string hash, string password)
+    public bool VerifyPassword(string storedHash, string password)
     {
-        return ph.VerifyHashedPassword(0, hash, password)
-               == PasswordVerificationResult.Success;
+        try
+        {
+            string[] parts = storedHash.Split('$');
+            if (parts.Length != 4 || parts[0] != "PBKDF2-SHA256") return false;
+
+            int iterations = int.Parse(parts[1]);
+            byte[] salt = Convert.FromBase64String(parts[2]);
+            byte[] expected = Convert.FromBase64String(parts[3]);
+            byte[] actual = Rfc2898DeriveBytes.Pbkdf2(
+                password, salt, iterations, HashAlgorithmName.SHA256, expected.Length);
+
+            return CryptographicOperations.FixedTimeEquals(actual, expected);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
-    public void SignIn(string email, string role, bool rememberMe)
+    public async Task SignInAsync(string email, string role, bool rememberMe)
     {
         List<Claim> claims =
         [
@@ -107,12 +130,12 @@ public class Helper(IWebHostEnvironment en,
             IsPersistent = rememberMe,
         };
 
-        ct.HttpContext!.SignInAsync(principal, properties);
+        await ct.HttpContext!.SignInAsync("Cookies", principal, properties);
     }
 
-    public void SignOut()
+    public async Task SignOutAsync()
     {
-        ct.HttpContext!.SignOutAsync();
+        await ct.HttpContext!.SignOutAsync("Cookies");
     }
 
     public string RandomPassword()

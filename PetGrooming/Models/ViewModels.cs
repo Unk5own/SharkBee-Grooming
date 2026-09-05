@@ -20,6 +20,10 @@ public class LoginVM
     public string Password { get; set; }
 
     public bool RememberMe { get; set; }
+
+    [Range(0, 100)]
+    [DisplayName("Security Check")]
+    public int? CaptchaAnswer { get; set; }
 }
 
 public class RegisterVM
@@ -47,6 +51,13 @@ public class RegisterVM
     public string Phone { get; set; }
 
     public IFormFile Photo { get; set; }
+
+    // Optional webcam capture: JavaScript converts the camera frame to a data URL.
+    public string? WebcamPhoto { get; set; }
+
+    [Range(0, 100)]
+    [DisplayName("Security Check")]
+    public int? CaptchaAnswer { get; set; }
 }
 
 public class UpdatePasswordVM
