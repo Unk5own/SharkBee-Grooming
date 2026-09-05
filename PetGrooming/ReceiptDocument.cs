@@ -17,7 +17,7 @@ public class ReceiptDocument(Appointment appointment) : IDocument
     public DocumentMetadata GetMetadata() => new()
     {
         Title = $"Receipt {appointment.BookingRef}",
-        Author = "Pawfect Grooming",
+        Author = "SharkBee Grooming",
     };
 
     public void Compose(IDocumentContainer container)
@@ -40,7 +40,7 @@ public class ReceiptDocument(Appointment appointment) : IDocument
         {
             row.RelativeItem().Column(col =>
             {
-                col.Item().Text("Pawfect Grooming")
+                col.Item().Text("SharkBee Grooming")
                           .FontSize(20).Bold().FontColor(Brand);
                 col.Item().Text("Professional grooming for dogs and cats")
                           .FontSize(9).FontColor(Muted);

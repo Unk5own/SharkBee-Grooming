@@ -245,7 +245,7 @@ public class AccountController(
             string link = $"{baseUrl}/Account/VerifyEmail?token={Uri.EscapeDataString(token)}";
             using var mail = new MailMessage
             {
-                Subject = "Verify your Pawfect Grooming account",
+                Subject = "Verify your SharkBee Grooming account",
                 Body = $"Hello {name},\n\nPlease verify your account using this link:\n{link}\n\nThe link expires in 24 hours.",
                 IsBodyHtml = false,
             };

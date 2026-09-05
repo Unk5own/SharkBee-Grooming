@@ -302,7 +302,7 @@ public class Helper(IWebHostEnvironment en,
         {
             var mail = new MailMessage
             {
-                Subject = $"Your Pawfect Grooming booking {appointment.BookingRef}",
+                Subject = $"Your SharkBee Grooming booking {appointment.BookingRef}",
                 IsBodyHtml = true,
                 Body = $@"
                     <p>Hi {appointment.Member?.Name ?? "there"},</p>
@@ -316,7 +316,7 @@ public class Helper(IWebHostEnvironment en,
                         <b>{appointment.Items.Min(i => i.SlotStart):ddd, d MMM yyyy h:mm tt}</b>
                     </p>
                     <p>Please arrive about ten minutes early so we can check your pet in.</p>
-                    <p>&mdash; Pawfect Grooming</p>",
+                    <p>&mdash; SharkBee Grooming</p>",
             };
 
             mail.To.Add(new MailAddress(appointment.MemberEmail));
