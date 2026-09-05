@@ -1247,3 +1247,89 @@ input[type=checkbox], input[type=radio] { accent-color: var(--brand); }
    button in a row exactly --ctl-h tall */
 .btn.ghost { padding: 11px 21px; }
 .btn.ghost.sm { padding: 6px 12px; }
+
+
+/* ===========================================================================
+   Remaining input cases: an <input> with no type attribute, read-only fields,
+   file pickers, and the filter tabs.
+   =========================================================================== */
+
+/* An input with no type behaves as text but matches no input[type=...] rule,
+   so the read-only Email and Role fields on Edit User were left unstyled. */
+input:not([type]) {
+    width: 100%;
+    height: var(--ctl-h);
+    padding: 11px 13px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font: inherit;
+    color: var(--ink);
+    background: #fff;
+    transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+
+/* a field you cannot edit should not look like one you can */
+input[readonly], input[disabled], select[disabled], textarea[readonly] {
+    background: var(--sand);
+    color: var(--muted);
+    cursor: default;
+}
+
+input[readonly]:hover, input[disabled]:hover { border-color: var(--line); }
+input[readonly]:focus { box-shadow: none; border-color: var(--line); }
+
+/* --- file pickers --------------------------------------------------------- */
+
+input[type=file] {
+    width: 100%;
+    min-height: var(--ctl-h);
+    padding: 8px 10px;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    background: #fff;
+    font-size: 13.5px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color var(--t) var(--ease), background var(--t) var(--ease);
+}
+
+input[type=file]:hover { border-color: var(--brand); background: var(--sand); }
+
+input[type=file]::file-selector-button {
+    margin-right: 12px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    background: var(--brand);
+    color: #fff;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease);
+}
+
+input[type=file]:hover::file-selector-button { background: var(--brand-dark); }
+
+/* --- filter tabs: match the service chips rather than plain underlined links */
+
+.daynav { gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.daynav a {
+    padding: 7px 14px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13.5px;
+    color: var(--muted);
+    transition: color var(--t) var(--ease), background var(--t) var(--ease);
+}
+
+.daynav a:hover { color: var(--ink); background: var(--sand); }
+
+.daynav a.active {
+    background: var(--brand);
+    color: #fff;
+    font-weight: 700;
+    border-bottom: none;
+}
