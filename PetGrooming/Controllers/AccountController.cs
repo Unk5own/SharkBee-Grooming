@@ -264,8 +264,10 @@ public class AccountController(
         int comma = dataUrl.IndexOf(',');
         if (comma < 0) return null;
 
+        // header is the part before the comma, so the prefix compared here must
+        // not contain one.
         string header = dataUrl[..comma];
-        if (!header.StartsWith("data:image/jpeg;base64,", StringComparison.OrdinalIgnoreCase))
+        if (!header.StartsWith("data:image/jpeg;base64", StringComparison.OrdinalIgnoreCase))
             return null;
 
         byte[] bytes = Convert.FromBase64String(dataUrl[(comma + 1)..]);

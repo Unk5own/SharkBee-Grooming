@@ -50,7 +50,9 @@ public class RegisterVM
     [Phone]
     public string Phone { get; set; }
 
-    public IFormFile Photo { get; set; }
+    // Nullable so MVC does not infer [Required]: the photo is optional, and the
+    // webcam capture below is an alternative to uploading a file.
+    public IFormFile? Photo { get; set; }
 
     // Optional webcam capture: JavaScript converts the camera frame to a data URL.
     public string? WebcamPhoto { get; set; }
