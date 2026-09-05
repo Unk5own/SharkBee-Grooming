@@ -312,7 +312,7 @@ public class MyAppointmentController(DB db, Helper hp, StripeService stripe,
     {
         var earliest = m.Items.Min(i => i.SlotStart);
         var paid = m.Payments.Where(p => p.Status == PaymentStatus.Paid).Sum(p => p.Amount);
-        var outcome = RefundPolicy.Calculate(paid, m.DepositAmount, earliest, DateTime.Now);
+        var outcome = RefundPolicy.Calculate(paid, earliest, DateTime.Now);
 
         return new CancelVM
         {

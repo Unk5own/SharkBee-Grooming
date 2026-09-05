@@ -6,8 +6,8 @@ namespace PetGrooming;
 //
 //   more than 48 hours before the appointment  full refund
 //   between 24 and 48 hours before             half refund
-//   less than 24 hours before                  the deposit is forfeited
-//   already a no-show                          no refund
+//   less than 24 hours before                  no refund
+//   already passed or a no-show                no refund
 public static class RefundPolicy
 {
     public const int FullRefundHours = 48;
@@ -15,8 +15,7 @@ public static class RefundPolicy
 
     public record Outcome(decimal Amount, string Explanation);
 
-    public static Outcome Calculate(decimal paid, decimal deposit,
-                                    DateTime earliestSlot, DateTime now)
+    public static Outcome Calculate(decimal paid, DateTime earliestSlot, DateTime now)
     {
         // Nothing has been paid yet, so there is nothing to give back.
         if (paid <= 0)
@@ -46,15 +45,8 @@ public static class RefundPolicy
                 $"so half of RM {paid:N2} is refunded, which is RM {half:N2}.");
         }
 
-        // Inside 24 hours the deposit is kept to cover the lost slot.
-        var refund = Math.Max(0m, Math.Round(paid - deposit, 2));
-
-        return refund <= 0
-            ? new(0m,
-                $"Cancelled less than {HalfRefundHours} hours ahead, so the deposit of " +
-                $"RM {deposit:N2} is forfeited and no refund is due.")
-            : new(refund,
-                $"Cancelled less than {HalfRefundHours} hours ahead, so the deposit of " +
-                $"RM {deposit:N2} is forfeited and RM {refund:N2} is refunded.");
+        // Inside 24 hours the slot can no longer be resold, so nothing is returned.
+        return new(0m,
+            $"Cancelled less than {HalfRefundHours} hours ahead, so no refund is due.");
     }
 }
