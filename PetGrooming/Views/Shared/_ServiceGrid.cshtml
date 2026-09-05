@@ -1,0 +1,87 @@
+@model IEnumerable<Service>
+@*
+    The service catalogue, shared by the home page and Booking/Catalog so the two
+    cannot drift apart. The caller sets:
+
+      ViewData["FilterUrl"] -- where the category chips link back to
+      ViewData["ShowSort"]  -- whether the caller's action understands priceSort
+*@
+@functions {
+    static string Q(string basePath, string? categoryId, string? priceSort)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrEmpty(categoryId))
+        {
+            parts.Add("categoryId=" + Uri.EscapeDataString(categoryId));
+        }
+
+        if (!string.IsNullOrEmpty(priceSort))
+        {
+            parts.Add("priceSort=" + Uri.EscapeDataString(priceSort));
+        }
+
+        return parts.Count == 0 ? basePath : basePath + "?" + string.Join("&", parts);
+    }
+}
+@{
+    var basePath = ViewData["FilterUrl"] as string ?? "/";
+    var showSort = ViewData["ShowSort"] as bool? ?? false;
+
+    var currentCategory = ViewBag.SelectedCategory as string;
+    var currentSort = ViewBag.SelectedPriceSort as string;
+    var nextSort = currentSort == "asc" ? "desc" : "asc";
+}
+
+<div class="svc-toolbar">
+    <div class="chips">
+        <a class="chip @(string.IsNullOrEmpty(currentCategory) ? "on" : "")"
+           href="@Q(basePath, null, currentSort)">All</a>
+        @if (ViewBag.Categories != null)
+        {
+            foreach (ServiceCategory c in ViewBag.Categories)
+            {
+                <a class="chip @(currentCategory == c.Id ? "on" : "")"
+                   href="@Q(basePath, c.Id, currentSort)">@c.Name</a>
+            }
+        }
+    </div>
+
+    @if (showSort)
+    {
+        <a class="sortlink" href="@Q(basePath, currentCategory, nextSort)">
+            Price @(currentSort == "asc" ? "▲" : currentSort == "desc" ? "▼" : "↕")
+        </a>
+    }
+</div>
+
+<div class="svc-grid">
+    @foreach (Service s in Model)
+    {
+        <article class="card svc">
+            <div class="svc-head">
+                <b>@s.Name</b>
+                <span class="pricetag">RM @s.Price.ToString("N2")</span>
+            </div>
+            <span class="sub svc-desc">@s.Description</span>
+            <div class="svc-meta">
+                <span class="pill">@s.Category.Name</span>
+                <span class="sub">@s.DurationMinutes min</span>
+            </div>
+            @if (User.IsInRole("Member"))
+            {
+                <a asp-controller="Booking" asp-action="SelectSlot" asp-route-serviceId="@s.Id"
+                   class="btn svc-btn">Book now<span class="arw">&rarr;</span></a>
+            }
+            else if (!User.Identity!.IsAuthenticated)
+            {
+                <a href="/Account/Login" class="btn ghost svc-btn">Login to book</a>
+            }
+        </article>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <p class="empty">No services in this category yet.</p>
+}

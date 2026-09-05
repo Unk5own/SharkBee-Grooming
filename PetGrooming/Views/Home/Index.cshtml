@@ -4,9 +4,6 @@
     var currentCategory = ViewBag.SelectedCategory as string;
     var currentSort = ViewBag.SelectedPriceSort as string;
 
-    // Toggle sort order between asc and desc
-    var nextSort = currentSort == "asc" ? "desc" : "asc";
-
     var services = ViewBag.Services as IEnumerable<Service>;
     var cheapest = services != null && services.Any() ? services.Min(s => s.Price) : 0m;
 }
@@ -99,54 +96,10 @@
     <h2 class="section-title" id="services">Our services</h2>
     <p class="section-sub">Prices include the bath, blow dry and a nail trim.</p>
 
-    @* Category filter and price sort. Same querystring contract as before:
-       categoryId and priceSort are both read by HomeController.Index. *@
-    <div class="svc-toolbar">
-        <div class="chips">
-            <a class="chip @(string.IsNullOrEmpty(currentCategory) ? "on" : "")"
-               href="/?priceSort=@currentSort">All</a>
-            @if (ViewBag.Categories != null)
-            {
-                foreach (ServiceCategory c in ViewBag.Categories)
-                {
-                    <a class="chip @(currentCategory == c.Id ? "on" : "")"
-                       href="/?categoryId=@c.Id&priceSort=@currentSort">@c.Name</a>
-                }
-            }
-        </div>
-        <a class="sortlink" href="/?categoryId=@currentCategory&priceSort=@nextSort">
-            Price @(currentSort == "asc" ? "▲" : currentSort == "desc" ? "▼" : "↕")
-        </a>
-    </div>
+    @* Same grid as Booking/Catalog. HomeController.Index reads both categoryId
+       and priceSort, so this copy gets the sort control. *@
+    ViewData["FilterUrl"] = "/";
+    ViewData["ShowSort"] = true;
 
-    <div class="svc-grid">
-        @foreach (Service s in services)
-        {
-            <article class="card svc">
-                <div class="svc-head">
-                    <b>@s.Name</b>
-                    <span class="pricetag">RM @s.Price.ToString("N2")</span>
-                </div>
-                <span class="sub svc-desc">@s.Description</span>
-                <div class="svc-meta">
-                    <span class="pill">@s.Category.Name</span>
-                    <span class="sub">@s.DurationMinutes min</span>
-                </div>
-                @if (User.IsInRole("Member"))
-                {
-                    <a asp-controller="Booking" asp-action="SelectSlot" asp-route-serviceId="@s.Id"
-                       class="btn svc-btn">Book now<span class="arw">&rarr;</span></a>
-                }
-                else if (!User.Identity!.IsAuthenticated)
-                {
-                    <a href="/Account/Login" class="btn ghost svc-btn">Login to book</a>
-                }
-            </article>
-        }
-    </div>
-
-    @if (!services.Any())
-    {
-        <p class="empty">No services in this category yet.</p>
-    }
+    <partial name="_ServiceGrid" model="services" />
 }
