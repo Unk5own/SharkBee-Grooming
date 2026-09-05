@@ -136,7 +136,6 @@ public class CheckoutVM
     public decimal Subtotal { get; set; }
     public decimal Discount { get; set; }
     public decimal Total { get; set; }
-    public decimal DepositAmount { get; set; }
 
     // Nullable on purpose: a non-nullable string is inferred as required by MVC,
     // which would stop anyone booking without typing a note.
@@ -146,9 +145,6 @@ public class CheckoutVM
 
     [DisplayName("Payment Method")]
     public PaymentMethod Method { get; set; }
-
-    [DisplayName("Pay deposit only")]
-    public bool DepositOnly { get; set; }
 }
 
 public class CancelVM

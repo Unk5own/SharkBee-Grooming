@@ -55,10 +55,6 @@
             <div><span>Subtotal</span> <span>RM @Model.Subtotal.ToString("N2")</span></div>
             <div><span>Discount</span> <span>RM @Model.Discount.ToString("N2")</span></div>
             <div class="grand"><span>Total</span> <span>RM @Model.Total.ToString("N2")</span></div>
-            <div>
-                <span class="sub">Deposit due to secure the slot</span>
-                <span class="sub">RM @Model.DepositAmount.ToString("N2")</span>
-            </div>
         </div>
     </div>
 
@@ -88,16 +84,6 @@
                 {
                     <span class="sub">Unavailable &mdash; card payments are not configured.</span>
                 }
-            </span>
-        </label>
-
-        <label class="choice stacked">
-            <input type="checkbox" asp-for="DepositOnly">
-            <span>
-                <b>Pay deposit only</b>
-                <span class="sub">
-                    Record RM @Model.DepositAmount.ToString("N2") now, balance on the day.
-                </span>
             </span>
         </label>
     </div>

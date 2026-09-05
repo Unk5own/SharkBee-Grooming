@@ -291,7 +291,6 @@ public static class Seeder
                                                 DateTime slot, AppointmentStatus status, Random rnd)
     {
         var price = service.Price;
-        var deposit = Math.Round(price * 0.3m, 2);
 
         // Booked some time before the slot -- but never in the future, which is
         // what naively subtracting from a future slot would produce.
@@ -311,7 +310,6 @@ public static class Seeder
             Subtotal = price,
             Discount = 0m,
             Total = price,
-            DepositAmount = deposit,
             Notes = "",
             CancelReason = "",
         };
@@ -327,7 +325,7 @@ public static class Seeder
             ItemStatus = status,
         });
 
-        AddPayment(appointment, status, price, deposit, createdAt, rnd);
+        AddPayment(appointment, status, price, createdAt, rnd);
         AddStatusTrail(appointment, status, createdAt, slot);
 
         if (status == AppointmentStatus.Completed)
@@ -339,13 +337,12 @@ public static class Seeder
     }
 
     private static void AddPayment(Appointment a, AppointmentStatus status,
-                                   decimal price, decimal deposit, DateTime createdAt, Random rnd)
+                                   decimal price, DateTime createdAt, Random rnd)
     {
         if (status == AppointmentStatus.Pending) return;
 
         var method = rnd.Next(100) < 65 ? PaymentMethod.Stripe : PaymentMethod.Counter;
-        var paidFull = rnd.Next(100) < 55;
-        var amount = paidFull ? price : deposit;
+        var amount = price;
 
         var payment = new Payment
         {

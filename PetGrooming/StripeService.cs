@@ -50,32 +50,6 @@ public class StripeService(IConfiguration cf, ILogger<StripeService> log)
                 },
             }).ToList();
 
-            // When only a deposit is being taken, the line items would not add up
-            // to the charged amount, so a single summary line is used instead.
-            var depositOnly = amount < appointment.Total;
-
-            if (depositOnly)
-            {
-                lineItems =
-                [
-                    new SessionLineItemOptions
-                    {
-                        Quantity = 1,
-                        PriceData = new SessionLineItemPriceDataOptions
-                        {
-                            Currency = "myr",
-                            UnitAmountDecimal = amount * 100m,
-                            ProductData = new SessionLineItemPriceDataProductDataOptions
-                            {
-                                Name = $"Deposit for booking {appointment.BookingRef}",
-                                Description = $"Balance of RM {appointment.Total - amount:N2} " +
-                                              "payable at the counter.",
-                            },
-                        },
-                    }
-                ];
-            }
-
             var options = new SessionCreateOptions
             {
                 Mode = "payment",

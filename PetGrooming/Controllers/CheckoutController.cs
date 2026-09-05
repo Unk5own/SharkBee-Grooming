@@ -35,7 +35,6 @@ public class CheckoutController(DB db, Helper hp, StripeService stripe, IConfigu
         var vm = BuildCheckout();
         vm.Notes = posted.Notes;
         vm.Method = posted.Method;
-        vm.DepositOnly = posted.DepositOnly;
 
         if (vm.Lines.Count == 0)
         {
@@ -113,7 +112,7 @@ public class CheckoutController(DB db, Helper hp, StripeService stripe, IConfigu
         // slot is still held, because availability ignores Cancelled items only.
         var payingByCard = vm.Method == PaymentMethod.Stripe;
         var status = payingByCard ? AppointmentStatus.Pending : AppointmentStatus.Confirmed;
-        var amountDue = vm.DepositOnly ? vm.DepositAmount : vm.Total;
+        var amountDue = vm.Total;
 
         var appointment = new Appointment
         {
@@ -124,7 +123,6 @@ public class CheckoutController(DB db, Helper hp, StripeService stripe, IConfigu
             Subtotal = vm.Subtotal,
             Discount = vm.Discount,
             Total = vm.Total,
-            DepositAmount = vm.DepositAmount,
             Notes = vm.Notes ?? "",
             CancelReason = "",
         };
@@ -385,9 +383,6 @@ public class CheckoutController(DB db, Helper hp, StripeService stripe, IConfigu
         vm.Subtotal = vm.Lines.Sum(l => l.Subtotal);
         vm.Discount = 0m;
         vm.Total = vm.Subtotal - vm.Discount;
-
-        var percent = cf.GetValue<int>("Booking:DepositPercent");
-        vm.DepositAmount = Math.Round(vm.Total * percent / 100m, 2);
 
         return vm;
     }

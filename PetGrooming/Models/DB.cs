@@ -86,7 +86,7 @@ public class DB(DbContextOptions options) : DbContext(options)
 public enum AppointmentStatus
 {
     Pending,     // created, awaiting payment
-    Confirmed,   // paid (or deposit paid), slot secured
+    Confirmed,   // paid, or due at the counter; slot secured
     CheckedIn,   // pet has arrived at the salon
     InProgress,  // grooming underway
     Completed,   // grooming finished
@@ -347,10 +347,6 @@ public class Appointment
 
     [Precision(8, 2)]
     public decimal Total { get; set; }
-
-    // The portion required up front. The balance is settled at the counter.
-    [Precision(8, 2)]
-    public decimal DepositAmount { get; set; }
 
     [Precision(8, 2)]
     public decimal RefundAmount { get; set; }
