@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -7,9 +6,8 @@ using PetGrooming.Models;
 
 namespace PetGrooming.Controllers;
 
-public class BookingController(DB db) : Controller
+public class BookingController(DB db, Helper hp) : Controller
 {
-    private const string CartSessionKey = "BookingCart";
     private string UserEmail => User.Identity?.Name ?? "";
 
     // 1. Service Catalog Display
@@ -129,15 +127,29 @@ public class BookingController(DB db) : Controller
     [HttpPost]
     [Authorize(Roles = "Member")]
     [ValidateAntiForgeryToken]
-    public IActionResult AddToCart(BookingCartItem item)
+    public async Task<IActionResult> AddToCart(BookingCartItem item)
     {
-        var cart = GetCartSession();
+        // Nothing posted here is trusted. A line whose pet, service or groomer
+        // fails these checks would be dropped again by the cart, leaving the
+        // member with a success message and an empty cart.
+        bool ownsPet = await db.Pets.AnyAsync(p =>
+            p.Id == item.PetId && p.MemberEmail == UserEmail && p.Active);
+        bool validService = await db.Services.AnyAsync(s => s.Id == item.ServiceId && s.Active);
+        bool validStaff = await db.Staffs.AnyAsync(s => s.Email == item.StaffEmail && s.Active);
+
+        if (!ownsPet || !validService || !validStaff || item.SlotStart <= DateTime.Now)
+        {
+            TempData["Info"] = "That slot could not be added. Please pick a pet, groomer and time again.";
+            return RedirectToAction("SelectSlot", new { serviceId = item.ServiceId });
+        }
+
+        var cart = hp.GetCart();
 
         // Avoid duplicate slot selection for the same pet
         cart.RemoveAll(c => c.PetId == item.PetId && c.SlotStart == item.SlotStart);
         cart.Add(item);
 
-        SaveCartSession(cart);
+        hp.SetCart(cart);
         TempData["Info"] = "Service added to your booking cart!";
 
         return RedirectToAction("Cart");
@@ -146,37 +158,39 @@ public class BookingController(DB db) : Controller
     [Authorize(Roles = "Member")]
     public async Task<IActionResult> Cart()
     {
-        var cart = GetCartSession();
+        var cart = hp.GetCart();
         var lines = new List<CheckoutLineVM>();
 
         foreach (var item in cart)
         {
-            var pet = await db.Pets.FindAsync(item.PetId);
-            var service = await db.Services.FindAsync(item.ServiceId);
-            var staff = await db.Staffs.FindAsync(item.StaffEmail);
+            // Same rules Checkout applies, so the cart never green-lights a line
+            // that checkout would then refuse.
+            var pet = await db.Pets.FirstOrDefaultAsync(p =>
+                p.Id == item.PetId && p.MemberEmail == UserEmail);
+            var service = await db.Services.FirstOrDefaultAsync(s => s.Id == item.ServiceId && s.Active);
+            var staff = await db.Staffs.FirstOrDefaultAsync(s => s.Email == item.StaffEmail && s.Active);
 
-            if (pet != null && service != null && staff != null)
+            if (pet == null || service == null || staff == null) continue;
+
+            var slotEnd = item.SlotStart.AddMinutes(service.DurationMinutes);
+
+            // Check if slot was booked by someone else in the meantime
+            bool taken = await db.AppointmentItems.AnyAsync(ai =>
+                ai.StaffEmail == item.StaffEmail &&
+                ai.SlotStart < slotEnd &&
+                ai.SlotEnd > item.SlotStart &&
+                ai.ItemStatus != AppointmentStatus.Cancelled);
+
+            lines.Add(new CheckoutLineVM
             {
-                var slotEnd = item.SlotStart.AddMinutes(service.DurationMinutes);
-
-                // Check if slot was booked by someone else in the meantime
-                bool unavailable = await db.AppointmentItems.AnyAsync(ai =>
-                    ai.StaffEmail == item.StaffEmail &&
-                    ai.SlotStart < slotEnd &&
-                    ai.SlotEnd > item.SlotStart &&
-                    ai.ItemStatus != AppointmentStatus.Cancelled);
-
-                lines.Add(new CheckoutLineVM
-                {
-                    Item = item,
-                    Pet = pet,
-                    Service = service,
-                    Staff = staff,
-                    SlotEnd = slotEnd,
-                    Subtotal = service.Price,
-                    Unavailable = unavailable
-                });
-            }
+                Item = item,
+                Pet = pet,
+                Service = service,
+                Staff = staff,
+                SlotEnd = slotEnd,
+                Subtotal = service.Price,
+                Unavailable = taken || item.SlotStart <= DateTime.Now
+            });
         }
 
         return View(lines);
@@ -187,24 +201,11 @@ public class BookingController(DB db) : Controller
     [ValidateAntiForgeryToken]
     public IActionResult RemoveFromCart(int petId, DateTime slotStart)
     {
-        var cart = GetCartSession();
+        var cart = hp.GetCart();
         cart.RemoveAll(c => c.PetId == petId && c.SlotStart == slotStart);
-        SaveCartSession(cart);
+        hp.SetCart(cart);
 
         return RedirectToAction("Cart");
     }
 
-    // Session Helpers
-    private List<BookingCartItem> GetCartSession()
-    {
-        var json = HttpContext.Session.GetString(CartSessionKey);
-        return string.IsNullOrEmpty(json)
-            ? []
-            : JsonSerializer.Deserialize<List<BookingCartItem>>(json) ?? [];
-    }
-
-    private void SaveCartSession(List<BookingCartItem> cart)
-    {
-        HttpContext.Session.SetString(CartSessionKey, JsonSerializer.Serialize(cart));
-    }
 }

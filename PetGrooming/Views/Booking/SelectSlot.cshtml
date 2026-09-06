@@ -13,6 +13,7 @@
     @Html.AntiForgeryToken()
     <input type="hidden" name="ServiceId" value="@service.Id">
     <input type="hidden" id="SelectedSlotStart" name="SlotStart" value="">
+    <input type="hidden" id="SelectedStaffEmail" name="StaffEmail" value="">
 
     <div class="card">
         <div>
@@ -22,7 +23,7 @@
 
         <div>
             <label asp-for="StaffEmail">Preferred Groomer</label>
-            <select asp-for="StaffEmail" asp-items="ViewBag.StaffList" id="staffSelect">
+            <select asp-items="ViewBag.StaffList" id="staffSelect">
                 <option value="">Any Groomer</option>
             </select>
         </div>
@@ -51,6 +52,7 @@
         const dateSelect = document.getElementById('dateSelect');
         const slotGrid = document.getElementById('slotGrid');
         const slotInput = document.getElementById('SelectedSlotStart');
+        const staffInput = document.getElementById('SelectedStaffEmail');
         const submitBtn = document.getElementById('submitBtn');
 
         function fetchSlots() {
@@ -61,6 +63,7 @@
             slotGrid.innerHTML = "<span>Loading slots...</span>";
             submitBtn.disabled = true;
             slotInput.value = "";
+            staffInput.value = "";
 
             fetch(`/Booking/GetAvailableSlots?serviceId=${serviceId}&staffEmail=${staff}&date=${date}`)
                 .then(res => res.json())
@@ -84,6 +87,7 @@
                             document.querySelectorAll('#slotGrid button').forEach(b => b.classList.remove('active'));
                             btn.classList.add('active');
                             slotInput.value = s.startTime;
+                            staffInput.value = s.staffEmail;
                             submitBtn.disabled = false;
                         };
 

@@ -30,7 +30,7 @@ else
                         <span class="sub">@line.Item.SlotStart.ToString("h:mm tt") &ndash; @line.SlotEnd.ToString("h:mm tt")</span>
                         @if (line.Unavailable)
                         {
-                            <span class="pill cancelled">Slot Taken</span>
+                            <span class="pill cancelled">@(line.Item.SlotStart <= DateTime.Now ? "Slot Passed" : "Slot Taken")</span>
                         }
                     </td>
                     <td>
@@ -67,7 +67,7 @@ else
         }
         else
         {
-            <a href="/Checkout/Index" class="btn">Proceed to Checkout</a>
+            <a asp-controller="Checkout" asp-action="Index" class="btn">Proceed to Checkout</a>
         }
         <a asp-action="Catalog" class="btn ghost">Add More Services</a>
     </p>
