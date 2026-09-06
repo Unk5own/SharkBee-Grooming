@@ -1,0 +1,56 @@
+﻿@model DashboardVM
+
+<div class="kpis">
+    <div class="kpi">
+        <span class="kpi-label">Revenue this month</span>
+        <span class="kpi-value">RM @Model.RevenueThisMonth.ToString("N2")</span>
+    </div>
+    <div class="kpi">
+        <span class="kpi-label">Appointments this month</span>
+        <span class="kpi-value">@Model.AppointmentsThisMonth</span>
+    </div>
+    <div class="kpi">
+        <span class="kpi-label">Completed this month</span>
+        <span class="kpi-value">@Model.CompletedThisMonth</span>
+    </div>
+    <div class="kpi">
+        <span class="kpi-label">Cancelled or no-show</span>
+        <span class="kpi-value">@Model.CancellationRate.ToString("N1")%</span>
+    </div>
+</div>
+
+<div class="charts">
+    <div class="card">
+        <b>Monthly revenue</b>
+        <span class="sub">Completed appointments, last 12 months</span>
+        <div class="chartbox"><canvas id="revenueChart"></canvas></div>
+    </div>
+
+    <div class="card">
+        <b>Most popular services</b>
+        <span class="sub">By completed appointments</span>
+        <div class="chartbox"><canvas id="servicesChart"></canvas></div>
+    </div>
+
+    <div class="card">
+        <b>Groomer utilisation</b>
+        <span class="sub">Booked time against rostered time, last 30 days</span>
+        <div class="chartbox"><canvas id="utilisationChart"></canvas></div>
+    </div>
+
+    <div class="card">
+        <b>Busiest hours</b>
+        <span class="sub">Appointments by start time</span>
+        <div class="chartbox"><canvas id="hoursChart"></canvas></div>
+    </div>
+</div>
+
+<p class="sub">
+    Revenue uses the price recorded on each booking at the time it was made, so
+    later price changes never alter past figures.
+</p>
+
+@section foot {
+    <script src="~/lib/chartjs/chart.umd.min.js"></script>
+    <script src="~/js/dashboard-charts.js" asp-append-version="true"></script>
+}

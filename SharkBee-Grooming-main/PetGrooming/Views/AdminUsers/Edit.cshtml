@@ -1,0 +1,52 @@
+@model PetGrooming.Models.UserEditVM
+@{ ViewBag.Title = "Edit User"; }
+<div class="card narrow-wide">
+    <form asp-action="Edit" asp-route-email="@Model.Email" method="post" enctype="multipart/form-data">
+        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+        <input type="hidden" asp-for="ExistingPhotoURL" />
+
+        <label>Photo</label>
+        <div>
+            @if (!string.IsNullOrEmpty(Model.ExistingPhotoURL))
+            {
+                <img class="avatar lg" src="~/photos/users/@Model.ExistingPhotoURL" alt="@Model.Name" />
+            }
+            else
+            {
+                <span class="avatar lg avatar-placeholder">No photo</span>
+            }
+        </div>
+        <label asp-for="Photo">Replace Photo</label>
+        <input asp-for="Photo" type="file" accept="image/jpeg,image/png" />
+        <span asp-validation-for="Photo" class="field-error"></span>
+
+        <label>Email</label>
+        <input value="@Model.Email" readonly />
+        <input type="hidden" asp-for="Email" />
+        <label asp-for="Name"></label>
+        <input asp-for="Name" />
+        <span asp-validation-for="Name" class="field-error"></span>
+        <label>Role</label>
+        <input value="@Model.Role" readonly />
+        <input type="hidden" asp-for="Role" />
+        @if (Model.Role == "Member")
+        {
+            <label asp-for="Phone"></label>
+            <input asp-for="Phone" />
+        }
+        @if (Model.Role == "Staff")
+        {
+            <label asp-for="Specialization"></label>
+            <input asp-for="Specialization" />
+            <label asp-for="HireDate"></label>
+            <input asp-for="HireDate" />
+        }
+        <label asp-for="NewPassword"></label>
+        <input asp-for="NewPassword" />
+        <span asp-validation-for="NewPassword" class="field-error"></span>
+        <label class="choice"><input asp-for="Blocked" /> Block account</label>
+        <button class="btn" type="submit">Save Changes</button>
+        <a class="btn ghost" asp-action="Index">Cancel</a>
+    </form>
+</div>
+@section foot { <partial name="_ValidationScriptsPartial" /> }

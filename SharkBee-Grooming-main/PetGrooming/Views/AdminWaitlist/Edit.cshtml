@@ -1,0 +1,56 @@
+@model WaitlistEditVM
+
+<div class="card">
+    <b>@Model.MemberName</b>
+    <span class="sub">@Model.MemberEmail</span>
+    <span class="sub">@Model.PetName &middot; @Model.ServiceName</span>
+</div>
+
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="All" class="validation-summary-errors"></div>
+
+    <div class="card">
+        <div class="filters">
+            <div>
+                <label asp-for="Status"></label>
+                <select asp-for="Status" asp-items="Html.GetEnumSelectList<WaitlistStatus>()"></select>
+                <span asp-validation-for="Status" class="field-validation-error"></span>
+            </div>
+
+            <div>
+                <label asp-for="PreferredStaffEmail"></label>
+                <select asp-for="PreferredStaffEmail" asp-items="ViewBag.StaffList">
+                    <option value="">Any groomer</option>
+                </select>
+                <span asp-validation-for="PreferredStaffEmail" class="field-validation-error"></span>
+            </div>
+
+            <div>
+                <label asp-for="DesiredFrom"></label>
+                <input type="date" asp-for="DesiredFrom">
+                <span asp-validation-for="DesiredFrom" class="field-validation-error"></span>
+            </div>
+
+            <div>
+                <label asp-for="DesiredTo"></label>
+                <input type="date" asp-for="DesiredTo">
+                <span asp-validation-for="DesiredTo" class="field-validation-error"></span>
+            </div>
+        </div>
+
+        <p class="sub">
+            Only entries left on <b>Waiting</b> are offered a slot when a booking
+            is cancelled. Moving an entry off Waiting stamps the time it changed.
+        </p>
+    </div>
+
+    <p>
+        <button type="submit" class="btn">Save Changes</button>
+        <a asp-action="Index" class="btn ghost">Back to Waitlist</a>
+    </p>
+</form>
+
+@section foot {
+    <partial name="_ValidationScriptsPartial" />
+}

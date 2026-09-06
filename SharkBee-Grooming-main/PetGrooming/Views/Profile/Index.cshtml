@@ -1,0 +1,42 @@
+@model PetGrooming.Models.UpdateProfileVM
+@{ ViewBag.Title = "My Account"; }
+<div class="card narrow-wide">
+    <form asp-action="Index" method="post" enctype="multipart/form-data">
+        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+        <input type="hidden" asp-for="PhotoURL" />
+
+        <label>Photo</label>
+        <div>
+            @if (!string.IsNullOrEmpty(Model.PhotoURL))
+            {
+                <img class="avatar lg" src="~/photos/users/@Model.PhotoURL" alt="@Model.Name" />
+            }
+            else
+            {
+                <span class="avatar lg avatar-placeholder">No photo</span>
+            }
+        </div>
+        <label asp-for="Photo">Replace Photo</label>
+        <input asp-for="Photo" type="file" accept="image/jpeg,image/png" />
+        <span asp-validation-for="Photo" class="field-error"></span>
+
+        <label>Email</label>
+        <input value="@Model.Email" readonly />
+        <input type="hidden" asp-for="Email" />
+
+        <label asp-for="Name"></label>
+        <input asp-for="Name" />
+        <span asp-validation-for="Name" class="field-error"></span>
+
+        @if (User.IsInRole("Member"))
+        {
+            <label asp-for="Phone"></label>
+            <input asp-for="Phone" />
+            <span asp-validation-for="Phone" class="field-error"></span>
+        }
+
+        <button class="btn" type="submit">Save Changes</button>
+        <a class="btn ghost" asp-action="ChangePassword">Change Password</a>
+    </form>
+</div>
+@section foot { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,56 @@
+@model IEnumerable<AppointmentItem>
+
+@if (!Model.Any())
+{
+    <p class="empty">No appointments match these filters.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Pet</th>
+                <th>Service</th>
+                <th>Owner</th>
+                <th>Groomer</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var i in Model)
+            {
+                <tr>
+                    <td>
+                        <b>@i.SlotStart.ToString("h:mm tt")</b>
+                        <span class="sub">to @i.SlotEnd.ToString("h:mm tt")</span>
+                    </td>
+                    <td>
+                        @i.Pet.Name
+                        <span class="sub">@i.Pet.Breed</span>
+                        @if (!string.IsNullOrWhiteSpace(i.Pet.Allergies) && i.Pet.Allergies != "None")
+                        {
+                            <span class="pill cancelled">@i.Pet.Allergies</span>
+                        }
+                    </td>
+                    <td>
+                        @i.Service.Name
+                        <span class="sub">@i.Service.DurationMinutes min</span>
+                    </td>
+                    <td>
+                        @i.Appointment.Member.Name
+                        <span class="sub">@i.Appointment.BookingRef</span>
+                    </td>
+                    <td>@i.Staff.Name</td>
+                    <td>
+                        <span class="pill @i.ItemStatus.ToString().ToLower()">@i.ItemStatus</span>
+                    </td>
+                    <td>
+                        <a asp-action="Detail" asp-route-id="@i.AppointmentId" class="btn ghost">Open</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

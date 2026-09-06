@@ -1,0 +1,87 @@
+@model IEnumerable<Waitlist>
+@{
+    var summary = (Dictionary<WaitlistStatus, int>)ViewBag.Summary;
+}
+
+<div class="card">
+    <p>
+        Members join the waitlist when the day they want is full. Cancelling a
+        booking automatically emails the oldest matching entry, so this list is
+        worked from the top down.
+    </p>
+
+    <form id="filters" method="get" asp-action="Index" class="filters">
+        <div>
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="">All statuses</option>
+                @foreach (var s in Enum.GetValues<WaitlistStatus>())
+                {
+                    <option value="@s" selected="@(ViewBag.Status?.ToString() == s.ToString())">@s</option>
+                }
+            </select>
+        </div>
+
+        <div>
+            <label for="serviceId">Service</label>
+            <select id="serviceId" name="serviceId" asp-items="ViewBag.ServiceList">
+                <option value="">All services</option>
+            </select>
+        </div>
+
+        <div>
+            <label for="search">Search</label>
+            <input type="text" id="search" name="search" value="@ViewBag.Search"
+                   placeholder="Member name, email or pet">
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn">Apply</button>
+            <a asp-action="Index" class="btn ghost">Reset</a>
+        </div>
+    </form>
+</div>
+
+<div class="statusstrip">
+    @foreach (var s in Enum.GetValues<WaitlistStatus>())
+    {
+        var n = summary.TryGetValue(s, out var c) ? c : 0;
+        if (n > 0)
+        {
+            <span class="pill @(s == WaitlistStatus.Notified ? "confirmed"
+                              : s == WaitlistStatus.Converted ? "completed"
+                              : s == WaitlistStatus.Expired ? "cancelled" : "pending")">@s @n</span>
+        }
+    }
+</div>
+
+<div id="results">
+    <partial name="_Index" model="Model" />
+</div>
+
+@section foot {
+    <script>
+        // AJAX filtering: replace just the results table instead of reloading
+        // the whole page. Falls back to a normal form submit without JavaScript.
+        (function () {
+            var form = document.getElementById('filters');
+            var results = document.getElementById('results');
+            if (!form || !results) return;
+
+            function load() {
+                var qs = new URLSearchParams(new FormData(form)).toString();
+                var url = form.getAttribute('action') + '?' + qs;
+
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (r) { return r.text(); })
+                    .then(function (html) {
+                        results.innerHTML = html;
+                        history.replaceState(null, '', url);
+                    });
+            }
+
+            form.addEventListener('submit', function (e) { e.preventDefault(); load(); });
+            form.addEventListener('change', load);
+        })();
+    </script>
+}
