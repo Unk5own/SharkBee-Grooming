@@ -4,6 +4,28 @@
     ViewBag.Title = "Select Date & Time";
 }
 
+<style>
+    /* 1. Fixes the messy layout by using a structured grid */
+    .slot-grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+        margin-top: 15px;
+    }
+
+    /* 2. Fixes the selection issue by making the active button clearly highlighted */
+    #slotGrid button.active {
+        background-color: #0f766e;
+        color: white;
+        border-color: #0f766e;
+        font-weight: bold;
+    }
+</style>
+
+<div style="margin-bottom: 20px;">
+    <a asp-action="Catalog" class="btn ghost">&larr; Back to catalog</a>
+</div>
+
 <div class="card">
     <b>@service.Name</b> &middot; RM @service.Price.ToString("N2")
     <span class="sub">@service.DurationMinutes minutes &middot; @service.Description</span>
@@ -11,6 +33,8 @@
 
 <form asp-action="AddToCart" method="post">
     @Html.AntiForgeryToken()
+
+    <!-- Hidden inputs that send the selected data to the cart -->
     <input type="hidden" name="ServiceId" value="@service.Id">
     <input type="hidden" id="SelectedSlotStart" name="SlotStart" value="">
     <input type="hidden" id="SelectedStaffEmail" name="StaffEmail" value="">
@@ -18,31 +42,32 @@
     <div class="card">
         <div>
             <label asp-for="PetId">Select Pet</label>
-            <select asp-for="PetId" asp-items="ViewBag.PetList"></select>
+            <select asp-for="PetId" asp-items="ViewBag.PetList" required>
+                <option value="">-- Choose a pet --</option>
+            </select>
         </div>
 
         <div>
-            <label asp-for="StaffEmail">Preferred Groomer</label>
-            <select asp-items="ViewBag.StaffList" id="staffSelect">
+            <label>Preferred Groomer</label>
+            <select id="staffSelect" asp-items="ViewBag.StaffList">
                 <option value="">Any Groomer</option>
             </select>
         </div>
 
         <div>
             <label asp-for="Date">Booking Date</label>
-            <input type="date" asp-for="Date" id="dateSelect" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")">
+            <input type="date" asp-for="Date" id="dateSelect" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" required>
         </div>
     </div>
 
     <div class="card">
         <b>Available Slots</b>
-        <div id="slotGrid" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-            <p class="sub">Select a groomer and date to load available time slots.</p>
+        <div id="slotGrid" class="slot-grid-container">
+            <p class="sub" style="grid-column: 1 / -1;">Select a pet and date to load available time slots.</p>
         </div>
     </div>
 
-    <button type="submit" id="submitBtn" class="btn" disabled>Add to Booking Cart</button>
-    <a asp-action="Catalog" class="btn ghost">Back to Catalog</a>
+    <button type="submit" id="submitBtn" class="btn" style="width:100%" disabled>Add to Booking Cart</button>
 </form>
 
 @section foot {
@@ -58,9 +83,11 @@
         function fetchSlots() {
             const staff = staffSelect.value;
             const date = dateSelect.value;
+
+            // Do not fetch until a date is actually selected
             if (!date) return;
 
-            slotGrid.innerHTML = "<span>Loading slots...</span>";
+            slotGrid.innerHTML = "<span style='grid-column: 1 / -1;'>Loading slots...</span>";
             submitBtn.disabled = true;
             slotInput.value = "";
             staffInput.value = "";
@@ -70,34 +97,52 @@
                 .then(slots => {
                     slotGrid.innerHTML = "";
                     if (slots.length === 0) {
-                        slotGrid.innerHTML = "<p class='empty'>No slots available for this date. Try another date or groomer.</p>";
+                        slotGrid.innerHTML = "<p class='empty' style='grid-column: 1 / -1;'>No slots available for this date. Try another date or groomer.</p>";
                         return;
                     }
 
                     slots.forEach(s => {
                         const btn = document.createElement('button');
                         btn.type = "button";
+
+                        // Apply styling based on availability
                         btn.className = s.isAvailable ? "btn ghost" : "btn ghost disabled";
                         btn.disabled = !s.isAvailable;
 
+                        // Format time neatly
                         const timeStr = new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        btn.innerText = `${timeStr} (${s.staffName})`;
+
+                        // Show groomer name on a second line if space allows
+                        btn.innerHTML = `${timeStr} <br><small style="font-weight:normal;">${s.staffName}</small>`;
 
                         btn.onclick = () => {
+                            // 1. Remove active class from all buttons
                             document.querySelectorAll('#slotGrid button').forEach(b => b.classList.remove('active'));
+
+                            // 2. Add active class to the clicked button
                             btn.classList.add('active');
+
+                            // 3. Populate the hidden fields so the form submits correctly to AddToCart
                             slotInput.value = s.startTime;
                             staffInput.value = s.staffEmail;
+
+                            // 4. Enable the submit button
                             submitBtn.disabled = false;
                         };
 
                         slotGrid.appendChild(btn);
                     });
+                })
+                .catch(err => {
+                    console.error("Error fetching slots:", err);
+                    slotGrid.innerHTML = "<p class='empty' style='grid-column: 1 / -1; color: red;'>Failed to load slots. Please try again.</p>";
                 });
         }
 
         staffSelect.addEventListener('change', fetchSlots);
         dateSelect.addEventListener('change', fetchSlots);
+
+        // Try to fetch on initial load if a date happens to be pre-filled
         fetchSlots();
     </script>
 }

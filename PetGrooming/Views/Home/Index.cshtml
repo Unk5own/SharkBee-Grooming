@@ -96,10 +96,33 @@
     <h2 class="section-title" id="services">Our services</h2>
     <p class="section-sub">Prices include the bath, blow dry and a nail trim.</p>
 
-    @* Same grid as Booking/Catalog. HomeController.Index reads both categoryId
-       and priceSort, so this copy gets the sort control. *@
     ViewData["FilterUrl"] = "/";
     ViewData["ShowSort"] = true;
 
-    <partial name="_ServiceGrid" model="services" />
+    <div id="service-grid-container">
+        <partial name="_ServiceGrid" model="services" />
+    </div>
 }
+
+@section foot {
+    <script>
+        // Listen for clicks on both the category chips and the price sort link
+        $(document).on('click', '#service-grid-container .chip, #service-grid-container .sortlink', function (e) {
+            e.preventDefault(); // Stop the default full-page reload
+            
+            var url = $(this).attr('href'); // Get the URL from the clicked filter
+
+            // Fetch the page via AJAX
+            $.get(url, function (data) {
+                // Extract only the updated service grid from the returned HTML
+                var newGridHtml = $(data).find('#service-grid-container').html();
+                
+                // Inject it into the current page
+                $('#service-grid-container').html(newGridHtml);
+            });
+
+            // Update the browser URL so if the user refreshes, they keep their filter
+            window.history.pushState(null, '', url);
+        });
+    </script>
+    }
