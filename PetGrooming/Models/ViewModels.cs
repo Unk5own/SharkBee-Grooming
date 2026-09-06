@@ -299,6 +299,36 @@ public class WaitlistVM
     public DateOnly DesiredTo { get; set; }
 }
 
+// The office-side edit form for one waitlist entry. Who is waiting, for which
+// pet and which service is fixed once the entry exists -- an admin adjusts the
+// wait, not its owner -- so only the negotiable fields post back.
+public class WaitlistEditVM
+{
+    public int Id { get; set; }
+
+    [DisplayName("Status")]
+    public WaitlistStatus Status { get; set; }
+
+    [DisplayName("Preferred groomer")]
+    public string? PreferredStaffEmail { get; set; }
+
+    [DataType(DataType.Date)]
+    [DisplayName("Earliest date")]
+    public DateOnly DesiredFrom { get; set; }
+
+    [DataType(DataType.Date)]
+    [DisplayName("Latest date")]
+    public DateOnly DesiredTo { get; set; }
+
+    // Shown on the form so the admin can see whose entry this is, never posted
+    // back. Nullable on purpose: a non-nullable string is inferred as required
+    // and every submit would fail on the fields the form does not carry.
+    public string? MemberName { get; set; }
+    public string? MemberEmail { get; set; }
+    public string? PetName { get; set; }
+    public string? ServiceName { get; set; }
+}
+
 // One groomer's column on the daily schedule board.
 public class BoardColumnVM
 {

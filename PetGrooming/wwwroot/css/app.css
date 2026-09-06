@@ -1089,6 +1089,16 @@ tbody tr:hover { background: var(--sand); }
 td .btn + .btn, td .btn + form, td form + form { margin-left: 6px; }
 td form { display: inline; }
 
+/* Row actions stay on one line with an even gap. An inline form wraps under the
+   link when the last column is narrow, which reads as a stray gap rather than a
+   pair of actions. */
+td .actions { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
+td .actions form { display: inline; margin: 0; }
+
+/* .linkbtn is the destructive red by default, which is right for Remove and
+   wrong for Edit sitting beside it. */
+.linkbtn.plain { color: var(--brand); }
+
 
 /* ===========================================================================
    Modern pass: a real type scale, tighter tracking, more air, softer depth.

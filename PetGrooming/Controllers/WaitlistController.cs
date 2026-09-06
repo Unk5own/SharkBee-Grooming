@@ -7,11 +7,15 @@ namespace PetGrooming.Controllers;
 // Members join the waitlist when the day they want is already full. Cancelling
 // a booking notifies the first person waiting for that service on that date.
 [Authorize(Roles = "Member")]
-public class WaitlistController(DB db) : Controller
+public class WaitlistController(DB db, WaitlistService waitlist) : Controller
 {
     // GET: Waitlist/Index
     public IActionResult Index()
     {
+        // A member whose offer lapsed is back in the queue by the time they look,
+        // rather than seeing themselves stuck on Notified for ever.
+        waitlist.Sweep();
+
         ViewBag.Title = "Waitlist";
         Populate();
 
