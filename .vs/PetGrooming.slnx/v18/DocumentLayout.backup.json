@@ -1,12 +1,113 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "E:\\User\\Documents\\SharkBee-Grooming\\",
-  "Documents": [],
+  "WorkspaceRootPath": "E:\\User\\Documents\\SharkBee-Grooming-main\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{6B0FF073-D025-6F40-80FD-76FF14385C4A}|PetGrooming\\PetGrooming.csproj|e:\\user\\documents\\sharkbee-grooming-main\\petgrooming\\views\\pet\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{6B0FF073-D025-6F40-80FD-76FF14385C4A}|PetGrooming\\PetGrooming.csproj|solutionrelative:petgrooming\\views\\pet\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6B0FF073-D025-6F40-80FD-76FF14385C4A}|PetGrooming\\PetGrooming.csproj|e:\\user\\documents\\sharkbee-grooming-main\\petgrooming\\controllers\\petcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6B0FF073-D025-6F40-80FD-76FF14385C4A}|PetGrooming\\PetGrooming.csproj|solutionrelative:petgrooming\\controllers\\petcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6B0FF073-D025-6F40-80FD-76FF14385C4A}|PetGrooming\\PetGrooming.csproj|e:\\user\\documents\\sharkbee-grooming-main\\petgrooming\\models\\viewmodels.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6B0FF073-D025-6F40-80FD-76FF14385C4A}|PetGrooming\\PetGrooming.csproj|solutionrelative:petgrooming\\models\\viewmodels.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6B0FF073-D025-6F40-80FD-76FF14385C4A}|PetGrooming\\PetGrooming.csproj|e:\\user\\documents\\sharkbee-grooming-main\\petgrooming\\views\\pet\\edit.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{6B0FF073-D025-6F40-80FD-76FF14385C4A}|PetGrooming\\PetGrooming.csproj|solutionrelative:petgrooming\\views\\pet\\edit.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6B0FF073-D025-6F40-80FD-76FF14385C4A}|PetGrooming\\PetGrooming.csproj|e:\\user\\documents\\sharkbee-grooming-main\\petgrooming\\views\\pet\\create.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{6B0FF073-D025-6F40-80FD-76FF14385C4A}|PetGrooming\\PetGrooming.csproj|solutionrelative:petgrooming\\views\\pet\\create.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|ViewDataWindow_MSSQL__/_localdb__MSSQLLocalDB/PetGroomingDB/True/SqlTable/dbo.Users.sql||{0058A1F7-65F3-4DB9-B3D0-CA7E64DD73CD}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": []
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Index.cshtml",
+              "DocumentMoniker": "E:\\User\\Documents\\SharkBee-Grooming-main\\PetGrooming\\Views\\Pet\\Index.cshtml",
+              "RelativeDocumentMoniker": "PetGrooming\\Views\\Pet\\Index.cshtml",
+              "ToolTip": "E:\\User\\Documents\\SharkBee-Grooming-main\\PetGrooming\\Views\\Pet\\Index.cshtml",
+              "RelativeToolTip": "PetGrooming\\Views\\Pet\\Index.cshtml",
+              "ViewState": "AgIAAHgAAAAAAAAAAAAAAIUAAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-09-06T19:32:00.558Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "PetController.cs",
+              "DocumentMoniker": "E:\\User\\Documents\\SharkBee-Grooming-main\\PetGrooming\\Controllers\\PetController.cs",
+              "RelativeDocumentMoniker": "PetGrooming\\Controllers\\PetController.cs",
+              "ToolTip": "E:\\User\\Documents\\SharkBee-Grooming-main\\PetGrooming\\Controllers\\PetController.cs",
+              "RelativeToolTip": "PetGrooming\\Controllers\\PetController.cs",
+              "ViewState": "AgIAAFMAAAAAAAAAAAAIwHMAAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-06T19:17:50.303Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Edit.cshtml",
+              "DocumentMoniker": "E:\\User\\Documents\\SharkBee-Grooming-main\\PetGrooming\\Views\\Pet\\Edit.cshtml",
+              "RelativeDocumentMoniker": "PetGrooming\\Views\\Pet\\Edit.cshtml",
+              "ToolTip": "E:\\User\\Documents\\SharkBee-Grooming-main\\PetGrooming\\Views\\Pet\\Edit.cshtml",
+              "RelativeToolTip": "PetGrooming\\Views\\Pet\\Edit.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAA1AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-09-06T19:16:25.494Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Create.cshtml",
+              "DocumentMoniker": "E:\\User\\Documents\\SharkBee-Grooming-main\\PetGrooming\\Views\\Pet\\Create.cshtml",
+              "RelativeDocumentMoniker": "PetGrooming\\Views\\Pet\\Create.cshtml",
+              "ToolTip": "E:\\User\\Documents\\SharkBee-Grooming-main\\PetGrooming\\Views\\Pet\\Create.cshtml",
+              "RelativeToolTip": "PetGrooming\\Views\\Pet\\Create.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACUAAAAqAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-09-06T19:15:52.07Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ViewModels.cs",
+              "DocumentMoniker": "E:\\User\\Documents\\SharkBee-Grooming-main\\PetGrooming\\Models\\ViewModels.cs",
+              "RelativeDocumentMoniker": "PetGrooming\\Models\\ViewModels.cs",
+              "ToolTip": "E:\\User\\Documents\\SharkBee-Grooming-main\\PetGrooming\\Models\\ViewModels.cs",
+              "RelativeToolTip": "PetGrooming\\Models\\ViewModels.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-06T19:15:08.405Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "dbo.Users.sql",
+              "DocumentMoniker": "ViewDataWindow_MSSQL__/_localdb__MSSQLLocalDB/PetGroomingDB/True/SqlTable/dbo.Users.sql",
+              "ToolTip": "ViewDataWindow_MSSQL__/_localdb__MSSQLLocalDB/PetGroomingDB/True/SqlTable/dbo.Users.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2026-09-06T19:07:45.569Z"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

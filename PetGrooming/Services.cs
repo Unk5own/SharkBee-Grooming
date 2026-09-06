@@ -78,3 +78,7 @@ public class CaptchaService
 }
 
 public record EmailVerificationTicket(string Email, DateTimeOffset ExpiresAt);
+
+// One-time password-reset token. Consumed on first use so a leaked/forwarded
+// link cannot be replayed after the password has already been changed.
+public record PasswordResetTicket(string Email, DateTimeOffset ExpiresAt);

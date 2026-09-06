@@ -1,0 +1,21 @@
+@model PetGrooming.Models.ResetPasswordVM
+@{ ViewBag.Title = "Resend Verification Email"; }
+<div class="card narrow">
+    <h2>Resend Verification Email</h2>
+    <p class="sub">Enter the email you registered with. If it belongs to an unverified account, we'll send a new link.</p>
+    <form asp-action="ResendVerification" method="post">
+        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+        <label asp-for="Email"></label>
+        <input asp-for="Email" autocomplete="email" />
+        <span asp-validation-for="Email" class="field-error"></span>
+
+        <label>Security check: <strong>@ViewBag.CaptchaQuestion</strong></label>
+        <input asp-for="CaptchaAnswer" type="number" min="0" max="100" inputmode="numeric" />
+        <span asp-validation-for="CaptchaAnswer" class="field-error"></span>
+
+        <button class="btn" type="submit">Resend link</button>
+        <a class="btn ghost" asp-action="Login">Back to Login</a>
+    </form>
+</div>
+@section foot { <partial name="_ValidationScriptsPartial" /> }

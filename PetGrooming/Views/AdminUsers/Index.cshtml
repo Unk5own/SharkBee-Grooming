@@ -34,12 +34,22 @@
 
 <table>
     <thead>
-        <tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Action</th></tr>
+        <tr><th>Photo</th><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Action</th></tr>
     </thead>
     <tbody>
     @foreach (var user in Model)
     {
         <tr>
+            <td>
+                @if (!string.IsNullOrEmpty(user.PhotoURL))
+                {
+                    <img class="avatar" src="~/photos/users/@user.PhotoURL" alt="@user.Name" />
+                }
+                else
+                {
+                    <span class="avatar avatar-placeholder">@user.Name.Substring(0, 1).ToUpper()</span>
+                }
+            </td>
             <td>@user.Email</td>
             <td>@user.Name</td>
             <td>@user.Role</td>
@@ -60,6 +70,10 @@
                         <button class="btn sm" type="submit">Unblock</button>
                     </form>
                 }
+                <form asp-action="PermanentDelete" asp-route-email="@user.Email" method="post" style="display:inline">
+                    @Html.AntiForgeryToken()
+                    <button class="btn danger sm" type="submit" onclick="return confirm('Permanently delete this account? This cannot be undone.')">Delete</button>
+                </form>
             </td>
         </tr>
     }

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PetGrooming")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+18c4fb53b546239dd8909411df0469c904dbf6c8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8e3d028c3fcfec4351ec8c19f3442da0ca0524ec")]
 [assembly: System.Reflection.AssemblyProductAttribute("PetGrooming")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PetGrooming")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

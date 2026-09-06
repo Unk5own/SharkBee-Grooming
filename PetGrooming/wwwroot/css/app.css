@@ -235,6 +235,25 @@ tr.unavailable { background: var(--bad-bg); }
 
 .sub { display: block; font-size: 12px; color: var(--muted); }
 
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    background: var(--sand);
+    display: inline-block;
+    vertical-align: middle;
+}
+.avatar.lg { width: 96px; height: 96px; }
+.avatar-placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 11px;
+}
+
 /* --- totals -------------------------------------------------------------- */
 
 .totals {
@@ -330,6 +349,37 @@ input:focus {
 
 .btn:hover { background: var(--brand-dark); }
 .btn.ghost { background: transparent; color: var(--brand); border: 1px solid var(--line); }
+.btn.danger { background: #c0392b; color: #fff; }
+.btn.danger:hover { background: #a5281c; }
+
+/* --- password field with show/hide toggle -------------------------------- */
+
+.pwd-wrap { position: relative; }
+.pwd-wrap input { padding-right: 62px; }
+
+.pwd-toggle {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--brand);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 6px 8px;
+}
+.pwd-toggle:hover { text-decoration: underline; }
+
+.form-links {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin: -4px 0 14px;
+}
+.form-links a { color: var(--brand); text-decoration: none; }
+.form-links a:hover { text-decoration: underline; }
 
 /* --- validation ---------------------------------------------------------- */
 

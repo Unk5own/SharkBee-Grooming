@@ -14,9 +14,11 @@ public class AccountController(
     LoginSecurityService loginSecurity,
     CaptchaService captcha,
     IMemoryCache cache,
-    IConfiguration config) : Controller
+    IConfiguration config,
+    IWebHostEnvironment en) : Controller
 {
     private const string VerificationPrefix = "Student1.EmailVerification:";
+    private const string PasswordResetPrefix = "Student1.PasswordReset:";
 
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
@@ -174,19 +176,12 @@ public class AccountController(
         bool requireVerification = config.GetValue<bool>("Security:RequireEmailVerification");
         if (requireVerification)
         {
-            string token = Guid.NewGuid().ToString("N");
-            cache.Set(VerificationPrefix + token,
-                new EmailVerificationTicket(member.Email, DateTimeOffset.UtcNow.AddHours(24)),
-                TimeSpan.FromHours(24));
-
-            if (TrySendVerificationEmail(member.Email, member.Name, token))
+            if (IssueEmailVerification(member.Email, member.Name))
             {
                 TempData["Info"] = "Registration successful. Please verify your email before logging in.";
                 return RedirectToAction(nameof(VerificationSent));
             }
 
-            // Do not leave a user locked out when SMTP has not been configured.
-            cache.Remove(VerificationPrefix + token);
             TempData["Info"] = "Account created. Email verification is enabled but SMTP is not configured, so the account was created without verification for local development.";
         }
 
@@ -196,6 +191,170 @@ public class AccountController(
 
     [HttpGet]
     public IActionResult VerificationSent() => View();
+
+    // ------------------------------------------------------------------------
+    // Resend verification email
+    // ------------------------------------------------------------------------
+    // Same shape as ForgotPassword below: always show a generic confirmation so
+    // this endpoint cannot be used to probe which addresses have an account.
+
+    [HttpGet]
+    public IActionResult ResendVerification()
+    {
+        ViewBag.CaptchaQuestion = captcha.Generate(HttpContext);
+        return View(new ResetPasswordVM());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendVerification(ResetPasswordVM vm)
+    {
+        if (!ModelState.IsValid)
+        {
+            ViewBag.CaptchaQuestion = captcha.Generate(HttpContext);
+            return View(vm);
+        }
+
+        if (!captcha.Validate(HttpContext, vm.CaptchaAnswer))
+        {
+            ModelState.AddModelError(nameof(vm.CaptchaAnswer), "Incorrect security check.");
+            ViewBag.CaptchaQuestion = captcha.Generate(HttpContext);
+            return View(vm);
+        }
+
+        string email = (vm.Email ?? "").Trim().ToLowerInvariant();
+        var member = await db.Members.FirstOrDefaultAsync(m => m.Email.ToLower() == email);
+
+        // Same message whether or not the account exists/was already verified,
+        // except in Development where SMTP is typically unconfigured -- there
+        // we surface the link directly so the flow stays testable locally.
+        TempData["Info"] = "If that email belongs to an unverified account, a new verification link has been sent.";
+
+        if (member != null && !member.Blocked && !member.EmailVerified)
+        {
+            if (en.IsDevelopment() && !hp.IsEmailConfigured())
+            {
+                string token = Guid.NewGuid().ToString("N");
+                cache.Set(VerificationPrefix + token,
+                    new EmailVerificationTicket(member.Email, DateTimeOffset.UtcNow.AddHours(24)),
+                    TimeSpan.FromHours(24));
+                TempData["Info"] = $"SMTP is not configured, so here's the dev link: /Account/VerifyEmail?token={token}";
+            }
+            else
+            {
+                IssueEmailVerification(member.Email, member.Name);
+            }
+        }
+
+        return RedirectToAction(nameof(Login));
+    }
+
+    // ------------------------------------------------------------------------
+    // Forgot password
+    // ------------------------------------------------------------------------
+
+    [HttpGet]
+    public IActionResult ForgotPassword()
+    {
+        ViewBag.CaptchaQuestion = captcha.Generate(HttpContext);
+        return View(new ResetPasswordVM());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(ResetPasswordVM vm)
+    {
+        if (!ModelState.IsValid)
+        {
+            ViewBag.CaptchaQuestion = captcha.Generate(HttpContext);
+            return View(vm);
+        }
+
+        if (!captcha.Validate(HttpContext, vm.CaptchaAnswer))
+        {
+            ModelState.AddModelError(nameof(vm.CaptchaAnswer), "Incorrect security check.");
+            ViewBag.CaptchaQuestion = captcha.Generate(HttpContext);
+            return View(vm);
+        }
+
+        string email = (vm.Email ?? "").Trim().ToLowerInvariant();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+
+        // Deliberately generic: does not reveal whether the address is
+        // registered, blocked, or the send failed -- except in Development
+        // where SMTP is typically unconfigured, so we surface the link
+        // directly to keep the flow testable locally.
+        TempData["Info"] = "If that email is registered, a password reset link has been sent and will expire in 1 hour.";
+
+        // Admin, Staff and Member can all reset -- whoever forgot the password,
+        // not just members.
+        if (user != null && !user.Blocked)
+        {
+            string token = Guid.NewGuid().ToString("N");
+            cache.Set(PasswordResetPrefix + token,
+                new PasswordResetTicket(user.Email, DateTimeOffset.UtcNow.AddHours(1)),
+                TimeSpan.FromHours(1));
+
+            if (en.IsDevelopment() && !hp.IsEmailConfigured())
+            {
+                TempData["Info"] = $"SMTP is not configured, so here's the dev link: /Account/ResetPassword?token={token}";
+            }
+            else
+            {
+                TrySendPasswordResetEmail(user.Email, user.Name, token);
+            }
+        }
+
+        return RedirectToAction(nameof(Login));
+    }
+
+    [HttpGet]
+    public IActionResult ResetPassword(string token)
+    {
+        if (!cache.TryGetValue<PasswordResetTicket>(PasswordResetPrefix + token, out var ticket)
+            || ticket == null || ticket.ExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            return Content("This password reset link is invalid or has expired. Please request a new one.");
+        }
+
+        return View(new SetNewPasswordVM { Token = token });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(SetNewPasswordVM vm)
+    {
+        if (!cache.TryGetValue<PasswordResetTicket>(PasswordResetPrefix + vm.Token, out var ticket)
+            || ticket == null || ticket.ExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            cache.Remove(PasswordResetPrefix + vm.Token);
+            return Content("This password reset link is invalid or has expired. Please request a new one.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(vm);
+        }
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == ticket.Email);
+
+        // Token is single-use either way, so the account cannot be reset again
+        // through a link that was already spent or has since been blocked.
+        cache.Remove(PasswordResetPrefix + vm.Token);
+
+        if (user == null || user.Blocked)
+        {
+            return Content("This account cannot be reset.");
+        }
+
+        user.Hash = hp.HashPassword(vm.Password);
+        await db.SaveChangesAsync();
+
+        loginSecurity.Clear(user.Email);
+
+        TempData["Info"] = "Your password has been reset. Please log in with your new password.";
+        return RedirectToAction(nameof(Login));
+    }
 
     [HttpGet]
     public async Task<IActionResult> VerifyEmail(string token)
@@ -237,6 +396,22 @@ public class AccountController(
         return RedirectToAction("Index", "Home");
     }
 
+    // Creates the verification ticket, caches it and emails the link. Used both
+    // right after Register and from ResendVerification. Cleans up the cache
+    // entry (rather than leaving an unusable one behind) if the send fails.
+    private bool IssueEmailVerification(string email, string name)
+    {
+        string token = Guid.NewGuid().ToString("N");
+        cache.Set(VerificationPrefix + token,
+            new EmailVerificationTicket(email, DateTimeOffset.UtcNow.AddHours(24)),
+            TimeSpan.FromHours(24));
+
+        if (TrySendVerificationEmail(email, name, token)) return true;
+
+        cache.Remove(VerificationPrefix + token);
+        return false;
+    }
+
     private bool TrySendVerificationEmail(string email, string name, string token)
     {
         try
@@ -247,6 +422,28 @@ public class AccountController(
             {
                 Subject = "Verify your SharkBee Grooming account",
                 Body = $"Hello {name},\n\nPlease verify your account using this link:\n{link}\n\nThe link expires in 24 hours.",
+                IsBodyHtml = false,
+            };
+            mail.To.Add(email);
+            hp.SendEmail(mail);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private bool TrySendPasswordResetEmail(string email, string name, string token)
+    {
+        try
+        {
+            string baseUrl = $"{Request.Scheme}://{Request.Host}";
+            string link = $"{baseUrl}/Account/ResetPassword?token={Uri.EscapeDataString(token)}";
+            using var mail = new MailMessage
+            {
+                Subject = "Reset your SharkBee Grooming password",
+                Body = $"Hello {name},\n\nWe received a request to reset your password. Use this link:\n{link}\n\nThe link expires in 1 hour. If you did not request this, you can ignore this email.",
                 IsBodyHtml = false,
             };
             mail.To.Add(email);

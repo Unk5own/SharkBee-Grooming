@@ -41,18 +41,30 @@ public class PetController(DB db, IWebHostEnvironment env) : Controller
             Active = true
         };
 
-        if (vm.Photo != null && vm.Photo.Length > 0)
+        if (vm.Photos != null && vm.Photos.Any())
         {
-            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(vm.Photo.FileName)}";
-            var filePath = Path.Combine(env.WebRootPath, "photos", "pets", fileName);
-
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            bool isFirstPhoto = true;
+            foreach (var file in vm.Photos)
             {
-                await vm.Photo.CopyToAsync(stream);
-            }
+                if (file.Length > 0)
+                {
+                    // Fixes the vm.Photo error by referencing the individual 'file' in the loop
+                    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
 
-            pet.Photos.Add(new PetPhoto { PhotoURL = fileName, IsPrimary = true, SortOrder = 1 });
+                    // Updated path to match your Edit method (Shared/image)
+                    var filePath = Path.Combine(env.WebRootPath, "Shared", "image", fileName);
+
+                    Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+
+                    // Sets only the very first uploaded photo as Primary = true
+                    pet.Photos.Add(new PetPhoto { PhotoURL = fileName, IsPrimary = isFirstPhoto, SortOrder = 1 });
+                    isFirstPhoto = false;
+                }
+            }
         }
         try
         {
@@ -92,7 +104,10 @@ public class PetController(DB db, IWebHostEnvironment env) : Controller
             WeightKg = pet.WeightKg,
             Allergies = pet.Allergies,
             Notes = pet.Notes,
-            ExistingPhotoURL = primaryPhoto
+            // Provide the full list of photos for the grid
+            ExistingPhotos = pet.Photos.ToList(),
+            // Set the currently selected primary photo
+            PrimaryPhotoURL = pet.Photos.FirstOrDefault(p => p.IsPrimary)?.PhotoURL
         };
 
         return View(vm);
@@ -104,12 +119,11 @@ public class PetController(DB db, IWebHostEnvironment env) : Controller
     {
         if (!ModelState.IsValid) return View(vm);
 
-        var pet = await db.Pets
-            .Include(p => p.Photos)
-            .FirstOrDefaultAsync(p => p.Id == vm.Id && p.MemberEmail == UserEmail && p.Active);
-
+        var pet = await db.Pets.Include(p => p.Photos)
+        .FirstOrDefaultAsync(p => p.Id == vm.Id && p.MemberEmail == UserEmail && p.Active);
         if (pet == null) return NotFound();
 
+       
         pet.Name = vm.Name;
         pet.Species = vm.Species;
         pet.Breed = vm.Breed;
@@ -117,26 +131,37 @@ public class PetController(DB db, IWebHostEnvironment env) : Controller
         pet.WeightKg = vm.WeightKg;
         pet.Allergies = vm.Allergies ?? "None";
         pet.Notes = vm.Notes ?? "";
-
-        // Process new photo upload
-        if (vm.Photo != null && vm.Photo.Length > 0)
+        // 1. Process new file uploads
+        if (vm.Photos != null && vm.Photos.Any())
         {
-            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(vm.Photo.FileName)}";
-            var filePath = Path.Combine(env.WebRootPath, "photos", "pets", fileName);
-
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            foreach (var file in vm.Photos)
             {
-                await vm.Photo.CopyToAsync(stream);
-            }
+                if (file.Length > 0)
+                {
+                    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+                    var filePath = Path.Combine(env.WebRootPath, "Shared", "image", fileName);
 
-            // Unset primary flag on old photos
+                    // ---> ADD IT EXACTLY HERE <---
+                    Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+
+                    // Add new photos as non-primary initially
+                    pet.Photos.Add(new PetPhoto { PhotoURL = fileName, IsPrimary = false, SortOrder = 1 });
+                }
+            }
+        }
+
+        // 2. Apply the primary photo selection to the entire collection
+        if (!string.IsNullOrEmpty(vm.PrimaryPhotoURL))
+        {
             foreach (var photo in pet.Photos)
             {
-                photo.IsPrimary = false;
+                photo.IsPrimary = (photo.PhotoURL == vm.PrimaryPhotoURL);
             }
-
-            pet.Photos.Add(new PetPhoto { PhotoURL = fileName, IsPrimary = true, SortOrder = 1 });
         }
 
         await db.SaveChangesAsync();

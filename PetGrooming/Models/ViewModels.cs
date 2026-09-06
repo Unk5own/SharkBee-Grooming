@@ -33,11 +33,13 @@ public class RegisterVM
     [Remote("CheckEmail", "Account", ErrorMessage = "Duplicated {0}.")]
     public string Email { get; set; }
 
-    [StringLength(100, MinimumLength = 5)]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least {2} characters.")]
+    [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d).+$",
+        ErrorMessage = "Password must contain at least one letter and one number.")]
     [DataType(DataType.Password)]
     public string Password { get; set; }
 
-    [StringLength(100, MinimumLength = 5)]
+    [StringLength(100, MinimumLength = 8)]
     [Compare("Password")]
     [DataType(DataType.Password)]
     [DisplayName("Confirm Password")]
@@ -69,12 +71,14 @@ public class UpdatePasswordVM
     [DisplayName("Current Password")]
     public string Current { get; set; }
 
-    [StringLength(100, MinimumLength = 5)]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least {2} characters.")]
+    [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d).+$",
+        ErrorMessage = "Password must contain at least one letter and one number.")]
     [DataType(DataType.Password)]
     [DisplayName("New Password")]
     public string New { get; set; }
 
-    [StringLength(100, MinimumLength = 5)]
+    [StringLength(100, MinimumLength = 8)]
     [Compare("New")]
     [DataType(DataType.Password)]
     [DisplayName("Confirm Password")]
@@ -88,16 +92,48 @@ public class UpdateProfileVM
     [StringLength(100)]
     public string Name { get; set; }
 
+    // Member-only field; ignored (and hidden in the view) for Staff/Admin.
+    [StringLength(20), Phone]
+    public string? Phone { get; set; }
+
     public string? PhotoURL { get; set; }
 
     public IFormFile? Photo { get; set; }
 }
 
+// Step 1 of "forgot password" (and also reused for "resend verification email"):
+// just the address to send the link to. A captcha is included since this is an
+// unauthenticated endpoint that triggers an email send.
 public class ResetPasswordVM
 {
     [StringLength(100)]
     [EmailAddress]
     public string Email { get; set; }
+
+    [Range(0, 100)]
+    [DisplayName("Security Check")]
+    public int? CaptchaAnswer { get; set; }
+}
+
+// Step 2 of "forgot password": the token from the emailed link plus the new
+// password. Token is a hidden field, round-tripped from the GET link.
+public class SetNewPasswordVM
+{
+    [Required]
+    public string Token { get; set; }
+
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least {2} characters.")]
+    [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d).+$",
+        ErrorMessage = "Password must contain at least one letter and one number.")]
+    [DataType(DataType.Password)]
+    [DisplayName("New Password")]
+    public string Password { get; set; }
+
+    [StringLength(100, MinimumLength = 8)]
+    [Compare("Password")]
+    [DataType(DataType.Password)]
+    [DisplayName("Confirm Password")]
+    public string Confirm { get; set; }
 }
 
 // PIC: Student 2 (Pets, Services and Booking)
@@ -127,9 +163,9 @@ public class PetVM
     [StringLength(500)]
     public string? Notes { get; set; }
 
-    public IFormFile? Photo { get; set; }
-
-    public string? ExistingPhotoURL { get; set; }
+    public List<IFormFile>? Photos { get; set; }
+    public List<PetPhoto> ExistingPhotos { get; set; } = new();
+    public string? PrimaryPhotoURL { get; set; }
 }
 
 public class SelectSlotVM

@@ -16,21 +16,35 @@ else
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; margin-top: 20px;">
         @foreach (var pet in Model)
         {
-            var primaryPhoto = pet.Photos.FirstOrDefault(p => p.IsPrimary)?.PhotoURL ?? pet.Photos.FirstOrDefault()?.PhotoURL;
+            // No @{} needed here, we are already in C# mode inside the foreach loop
+            var primaryPhoto = pet.Photos.FirstOrDefault(p => p.IsPrimary)?.PhotoURL
+                            ?? pet.Photos.FirstOrDefault()?.PhotoURL;
 
-            <div class="card" style="display: flex; flex-direction: column; height: 100%; padding: 0; overflow: hidden;">
-                <div style="height: 180px; width: 100%; background-color: #f3f4f6; position: relative;">
-                    @if (!string.IsNullOrEmpty(primaryPhoto))
-                    {
-                        <img src="~/photos/pets/@primaryPhoto" alt="@pet.Name" style="width: 100%; height: 100%; object-fit: cover;" />
-                    }
-                    else
-                    {
-                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af; font-size: 3rem;">
-                            🐾
-                        </div>
-                    }
-                </div>
+            <div style="border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; background: #fff;">
+
+                @{
+                    // Extract just the filenames for the gallery
+                    var allPhotos = pet.Photos?.Select(p => p.PhotoURL).ToList() ?? new List<string>();
+                    var allPhotosJson = System.Text.Json.JsonSerializer.Serialize(allPhotos);
+                }
+
+                @if (!string.IsNullOrEmpty(primaryPhoto))
+                {
+                    <img src="@Url.Content($"~/Shared/image/{primaryPhoto}")"
+                         alt="@pet.Name"
+                         class="pet-card-img"
+                         style="width: 100%; height: 200px; object-fit: cover; cursor: pointer;"
+                         data-photos='@Html.Raw(allPhotosJson)'
+                         onclick="openGallery(this)"
+                         title="Click to view all photos" />
+                }
+                else
+                {
+                    <img src="@Url.Content("~/Shared/image/default-pet.png")"
+                         alt="Default Pet"
+                         class="pet-card-img"
+                         style="width: 100%; height: 200px; object-fit: cover;" />
+                }
 
                 <div style="padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
@@ -59,5 +73,76 @@ else
                 </div>
             </div>
         }
+        <div id="photoModal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.85); backdrop-filter: blur(5px);">
+
+            <!-- Close Button -->
+            <span onclick="closeGallery()" style="position:absolute; top:20px; right:40px; color:white; font-size:50px; font-weight:bold; cursor:pointer; line-height:1;">&times;</span>
+
+            <div style="display:flex; justify-content:center; align-items:center; height:100%;">
+                <!-- Left Arrow -->
+                <a onclick="changeSlide(-1)" style="cursor:pointer; color:white; font-size:60px; padding:20px; user-select:none; transition: 0.2s;">&#10094;</a>
+
+                <!-- Main Image -->
+                <img id="modalImage" style="max-height:85vh; max-width:80vw; object-fit:contain; border-radius:8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" />
+
+                <!-- Right Arrow -->
+                <a onclick="changeSlide(1)" style="cursor:pointer; color:white; font-size:60px; padding:20px; user-select:none; transition: 0.2s;">&#10095;</a>
+            </div>
+
+            <!-- Image Counter -->
+            <div id="photoCounter" style="position:absolute; bottom:40px; width:100%; text-align:center; color:white; font-size:20px; font-family: sans-serif;"></div>
+        </div>
     </div>
 }
+
+    <script>
+        let currentPhotos = [];
+        let currentIndex = 0;
+
+        function openGallery(imgElement) {
+            const photosData = imgElement.getAttribute('data-photos');
+            if (!photosData) return;
+
+            currentPhotos = JSON.parse(photosData);
+
+            // If they only have the default image or no photos, don't open
+            if (currentPhotos.length === 0) return;
+
+            currentIndex = 0;
+            updateModalImage();
+
+            document.getElementById('photoModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Stop background scrolling
+        }
+
+        function closeGallery() {
+            document.getElementById('photoModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore background scrolling
+        }
+
+        function changeSlide(direction) {
+            currentIndex += direction;
+
+            // Loop back to start or end if clicking past the limits
+            if (currentIndex >= currentPhotos.length) currentIndex = 0;
+            if (currentIndex < 0) currentIndex = currentPhotos.length - 1;
+
+            updateModalImage();
+        }
+
+        function updateModalImage() {
+            const imgEl = document.getElementById('modalImage');
+            const counterEl = document.getElementById('photoCounter');
+
+            // Set the new image source
+            imgEl.src = '/Shared/image/' + currentPhotos[currentIndex];
+            counterEl.innerText = `Photo ${currentIndex + 1} of ${currentPhotos.length}`;
+        }
+
+        // Allow closing with the Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeGallery();
+            }
+        });
+    </script>

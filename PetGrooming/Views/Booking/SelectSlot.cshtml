@@ -83,7 +83,7 @@
         function fetchSlots() {
             const staff = staffSelect.value;
             const date = dateSelect.value;
-            
+
             // Do not fetch until a date is actually selected
             if (!date) return;
 
@@ -96,39 +96,36 @@
                 .then(res => res.json())
                 .then(slots => {
                     slotGrid.innerHTML = "";
-                    
-                    // Filter the slots to ONLY include the available ones
-                    const availableSlots = slots.filter(s => s.isAvailable);
-
-                    if (availableSlots.length === 0) {
+                    if (slots.length === 0) {
                         slotGrid.innerHTML = "<p class='empty' style='grid-column: 1 / -1;'>No slots available for this date. Try another date or groomer.</p>";
                         return;
                     }
 
-                    availableSlots.forEach(s => {
+                    slots.forEach(s => {
                         const btn = document.createElement('button');
                         btn.type = "button";
-                        
-                        // All buttons rendered now are guaranteed available
-                        btn.className = "btn ghost";
+
+                        // Apply styling based on availability
+                        btn.className = s.isAvailable ? "btn ghost" : "btn ghost disabled";
+                        btn.disabled = !s.isAvailable;
 
                         // Format time neatly
                         const timeStr = new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        
-                        // Show groomer name on a second line
+
+                        // Show groomer name on a second line if space allows
                         btn.innerHTML = `${timeStr} <br><small style="font-weight:normal;">${s.staffName}</small>`;
 
                         btn.onclick = () => {
                             // 1. Remove active class from all buttons
                             document.querySelectorAll('#slotGrid button').forEach(b => b.classList.remove('active'));
-                            
+
                             // 2. Add active class to the clicked button
                             btn.classList.add('active');
-                            
+
                             // 3. Populate the hidden fields so the form submits correctly to AddToCart
                             slotInput.value = s.startTime;
                             staffInput.value = s.staffEmail;
-                            
+
                             // 4. Enable the submit button
                             submitBtn.disabled = false;
                         };
@@ -144,7 +141,7 @@
 
         staffSelect.addEventListener('change', fetchSlots);
         dateSelect.addEventListener('change', fetchSlots);
-        
+
         // Try to fetch on initial load if a date happens to be pre-filled
         fetchSlots();
     </script>

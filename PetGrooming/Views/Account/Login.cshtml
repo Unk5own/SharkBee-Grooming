@@ -11,8 +11,15 @@
         <span asp-validation-for="Email" class="field-error"></span>
 
         <label asp-for="Password"></label>
-        <input asp-for="Password" autocomplete="current-password" />
+        <div class="pwd-wrap">
+            <input asp-for="Password" autocomplete="current-password" />
+            <button type="button" class="pwd-toggle">Show</button>
+        </div>
         <span asp-validation-for="Password" class="field-error"></span>
+
+        <div class="form-links">
+            <a asp-action="ForgotPassword">Forgot password?</a>
+        </div>
 
         <label>Security check: <strong>@ViewBag.CaptchaQuestion</strong></label>
         <input asp-for="CaptchaAnswer" type="number" min="0" max="100" inputmode="numeric" />
@@ -23,4 +30,7 @@
         <a class="btn ghost" asp-action="Register">Register</a>
     </form>
 </div>
-@section foot { <partial name="_ValidationScriptsPartial" /> }
+@section foot {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/password-toggle.js"></script>
+}

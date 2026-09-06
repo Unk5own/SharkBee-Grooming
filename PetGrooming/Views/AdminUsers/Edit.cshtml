@@ -1,8 +1,25 @@
 @model PetGrooming.Models.UserEditVM
 @{ ViewBag.Title = "Edit User"; }
 <div class="card narrow-wide">
-    <form asp-action="Edit" asp-route-email="@Model.Email" method="post">
+    <form asp-action="Edit" asp-route-email="@Model.Email" method="post" enctype="multipart/form-data">
         <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+        <input type="hidden" asp-for="ExistingPhotoURL" />
+
+        <label>Photo</label>
+        <div>
+            @if (!string.IsNullOrEmpty(Model.ExistingPhotoURL))
+            {
+                <img class="avatar lg" src="~/photos/users/@Model.ExistingPhotoURL" alt="@Model.Name" />
+            }
+            else
+            {
+                <span class="avatar lg avatar-placeholder">No photo</span>
+            }
+        </div>
+        <label asp-for="Photo">Replace Photo</label>
+        <input asp-for="Photo" type="file" accept="image/jpeg,image/png" />
+        <span asp-validation-for="Photo" class="field-error"></span>
+
         <label>Email</label>
         <input value="@Model.Email" readonly />
         <input type="hidden" asp-for="Email" />

@@ -61,6 +61,7 @@
                     @(User.IsInRole("Admin") ? "Admin" : User.IsInRole("Staff") ? "Groomer" : "Member")
                 </span>
                 <span class="who">@User.Identity.Name</span>
+                <a class="btn ghost sm" asp-controller="Profile" asp-action="Index">My Account</a>
                 <a class="btn ghost sm" href="/Account/Logout">Logout</a>
             }
             else

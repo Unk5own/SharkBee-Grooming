@@ -80,6 +80,18 @@ public class AdminUsersController(DB db, Helper hp) : Controller
         user.Blocked = false;
         user.EmailVerified = true;
 
+        if (vm.Photo != null && vm.Photo.Length > 0)
+        {
+            var error = hp.ValidatePhoto(vm.Photo);
+            if (!string.IsNullOrEmpty(error))
+            {
+                ModelState.AddModelError(nameof(vm.Photo), error);
+                return View(vm);
+            }
+
+            user.PhotoURL = hp.SavePhoto(vm.Photo, "photos/users");
+        }
+
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
@@ -101,7 +113,8 @@ public class AdminUsersController(DB db, Helper hp) : Controller
             Blocked = user.Blocked,
             Phone = (user as Member)?.Phone,
             Specialization = (user as Staff)?.Specialization,
-            HireDate = (user as Staff)?.HireDate
+            HireDate = (user as Staff)?.HireDate,
+            ExistingPhotoURL = user.PhotoURL
         });
     }
 
@@ -131,6 +144,22 @@ public class AdminUsersController(DB db, Helper hp) : Controller
         if (!string.IsNullOrWhiteSpace(vm.NewPassword))
             user.Hash = hp.HashPassword(vm.NewPassword);
 
+        if (vm.Photo != null && vm.Photo.Length > 0)
+        {
+            var error = hp.ValidatePhoto(vm.Photo);
+            if (!string.IsNullOrEmpty(error))
+            {
+                ModelState.AddModelError(nameof(vm.Photo), error);
+                vm.ExistingPhotoURL = user.PhotoURL;
+                return View(vm);
+            }
+
+            if (!string.IsNullOrEmpty(user.PhotoURL))
+                hp.DeletePhoto(user.PhotoURL, "photos/users");
+
+            user.PhotoURL = hp.SavePhoto(vm.Photo, "photos/users");
+        }
+
         await db.SaveChangesAsync();
         TempData["Info"] = $"{user.Name}'s account has been updated.";
         return RedirectToAction(nameof(Index));
@@ -157,6 +186,54 @@ public class AdminUsersController(DB db, Helper hp) : Controller
         await db.SaveChangesAsync();
 
         TempData["Info"] = $"{user.Name}'s account has been blocked.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    // Permanently removes a user record from the database. Unlike Delete (which
+    // just blocks the account), this cannot be undone. It is only allowed when
+    // the account has no related history (appointments, pets, reviews, etc.),
+    // because those foreign keys use DeleteBehavior.Restrict -- SaveChanges
+    // would otherwise throw. Accounts with history should be blocked instead.
+    [HttpPost("PermanentDelete/{email}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> PermanentDelete(string email)
+    {
+        var user = await db.Users.FindAsync(email);
+        if (user == null) return NotFound();
+
+        if (user.Email == User.Identity?.Name)
+        {
+            TempData["Info"] = "You cannot delete your own account while logged in.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var hasHistory = user switch
+        {
+            Member => await db.Appointments.AnyAsync(a => a.MemberEmail == email)
+                   || await db.Pets.AnyAsync(p => p.MemberEmail == email)
+                   || await db.Reviews.AnyAsync(r => r.MemberEmail == email)
+                   || await db.Waitlists.AnyAsync(w => w.MemberEmail == email),
+            Staff => await db.AppointmentItems.AnyAsync(ai => ai.StaffEmail == email)
+                   || await db.Reviews.AnyAsync(r => r.StaffEmail == email)
+                   || await db.StaffSchedules.AnyAsync(s => s.StaffEmail == email)
+                   || await db.StaffTimeOffs.AnyAsync(t => t.StaffEmail == email),
+            _ => false
+        };
+
+        if (hasHistory)
+        {
+            TempData["Info"] = $"{user.Name} cannot be permanently deleted because they have related records " +
+                                "(appointments, pets, reviews, or schedules). Block the account instead.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (!string.IsNullOrEmpty(user.PhotoURL))
+            hp.DeletePhoto(user.PhotoURL, "photos/users");
+
+        db.Users.Remove(user);
+        await db.SaveChangesAsync();
+
+        TempData["Info"] = $"{user.Name}'s account has been permanently deleted.";
         return RedirectToAction(nameof(Index));
     }
 

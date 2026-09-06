@@ -35,7 +35,7 @@
 
         <div>
             <label asp-for="WeightKg">Weight (kg)</label>
-            <input type="number" step="0.1" asp-for="WeightKg">
+            <input type="number" step="0.01" asp-for="WeightKg">
         </div>
 
         <div>
@@ -44,8 +44,8 @@
         </div>
 
         <div>
-            <label asp-for="Photo">Pet Photo</label>
-            <input type="file" asp-for="Photo" accept="image/*">
+            <label asp-for="Photos">Pet Photos (Select multiple)</label>
+            <input type="file" asp-for="Photos" accept="image/*" multiple>
         </div>
     </div>
 

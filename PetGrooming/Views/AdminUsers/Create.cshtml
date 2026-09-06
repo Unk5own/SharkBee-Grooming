@@ -1,7 +1,7 @@
 @model PetGrooming.Models.UserCreateVM
 @{ ViewBag.Title = "Create User"; }
 <div class="card narrow-wide">
-    <form asp-action="Create" method="post">
+    <form asp-action="Create" method="post" enctype="multipart/form-data">
         <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
         <label asp-for="Email"></label>
         <input asp-for="Email" />
@@ -12,6 +12,9 @@
         <label asp-for="Password"></label>
         <input asp-for="Password" />
         <span asp-validation-for="Password" class="field-error"></span>
+        <label asp-for="Photo">Photo (optional)</label>
+        <input asp-for="Photo" type="file" accept="image/jpeg,image/png" />
+        <span asp-validation-for="Photo" class="field-error"></span>
         <label asp-for="Role"></label>
         <select asp-for="Role" id="role">
             <option value="Admin">Admin</option>
