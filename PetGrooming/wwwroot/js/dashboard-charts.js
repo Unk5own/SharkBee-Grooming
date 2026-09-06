@@ -21,6 +21,44 @@
     Chart.defaults.font.family = '"Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif';
     Chart.defaults.color = MUTED;
 
+    // Draws the percentage share onto each slice of a pie or doughnut. Written
+    // by hand instead of adding chartjs-plugin-datalabels, so this stays our
+    // own code.
+    var sliceCount = function (values) {
+        var total = 0;
+        for (var i = 0; i < values.length; i++) total += Number(values[i]);
+        return total;
+    };
+
+    var percentLabels = {
+        id: 'percentLabels',
+        afterDatasetsDraw: function (chart) {
+            var values = chart.data.datasets[0].data;
+            var total = sliceCount(values);
+            if (!total) return;
+
+            var cx = chart.ctx;
+            cx.save();
+            cx.font = '600 12px ' + Chart.defaults.font.family;
+            cx.fillStyle = '#ffffff';
+            cx.textAlign = 'center';
+            cx.textBaseline = 'middle';
+
+            chart.getDatasetMeta(0).data.forEach(function (arc, i) {
+                var share = Number(values[i]) / total * 100;
+
+                // A thinner slice cannot hold a readable label, so it is left
+                // to the legend and the tooltip.
+                if (share < 5) return;
+
+                var at = arc.tooltipPosition();
+                cx.fillText(share.toFixed(1) + '%', at.x, at.y);
+            });
+
+            cx.restore();
+        }
+    };
+
     var money = function (v) { return 'RM ' + Number(v).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
 
     fetch('/Report/Data', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
@@ -93,12 +131,47 @@
                     borderWidth: 2
                 }]
             },
+            plugins: [percentLabels],
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 cutout: '58%',
                 plugins: {
-                    legend: { position: 'right', labels: { boxWidth: 12, padding: 10 } }
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 10,
+                            generateLabels: function (chart) {
+                                var values = chart.data.datasets[0].data;
+                                var total = sliceCount(values);
+
+                                return chart.data.labels.map(function (label, i) {
+                                    var share = total ? Number(values[i]) / total * 100 : 0;
+
+                                    return {
+                                        text: label + ' — ' + share.toFixed(1) + '%',
+                                        fillStyle: SERIES[i % SERIES.length],
+                                        strokeStyle: '#ffffff',
+                                        lineWidth: 2,
+                                        index: i
+                                    };
+                                });
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (c) {
+                                var total = sliceCount(c.dataset.data);
+                                var share = total ? c.parsed / total * 100 : 0;
+                                var noun = c.parsed === 1 ? ' booking' : ' bookings';
+
+                                return c.label + ': ' + c.parsed + noun +
+                                       ' (' + share.toFixed(1) + '%)';
+                            }
+                        }
+                    }
                 }
             }
         });
